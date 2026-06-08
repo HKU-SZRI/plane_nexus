@@ -10,7 +10,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from plane.db.models import Profile, User, Workspace, WorkspaceMember
+from plane.db.models import Profile, Project, ProjectMember, ProjectUserProperty, User, Workspace, WorkspaceMember
 
 
 class NexusOnboardUserEndpoint(APIView):
@@ -39,10 +39,14 @@ class NexusOnboardUserEndpoint(APIView):
 
         first_name = str(request.data.get("first_name") or "").strip()
         last_name = str(request.data.get("last_name") or "").strip()
+        project_id = str(request.data.get("project_id") or "").strip()
 
         try:
             with transaction.atomic():
                 workspace = Workspace.objects.get(slug=workspace_slug)
+                project = None
+                if project_id:
+                    project = Project.objects.get(pk=project_id, workspace=workspace)
                 user = User.objects.filter(email=email).first()
                 user_created = False
                 if user is None:
@@ -91,8 +95,33 @@ class NexusOnboardUserEndpoint(APIView):
                 if profile.last_workspace_id != workspace.id:
                     profile.last_workspace_id = workspace.id
                     profile.save(update_fields=["last_workspace_id", "updated_at"])
+
+                project_member = None
+                project_member_created = False
+                if project is not None:
+                    project_member, project_member_created = ProjectMember.objects.get_or_create(
+                        project=project,
+                        member=user,
+                        defaults={"role": role, "is_active": True, "workspace": workspace},
+                    )
+                    changed = False
+                    if project_member.role != role:
+                        project_member.role = role
+                        changed = True
+                    if not project_member.is_active:
+                        project_member.is_active = True
+                        changed = True
+                    if changed:
+                        project_member.save(update_fields=["role", "is_active", "updated_at"])
+                    ProjectUserProperty.objects.get_or_create(
+                        project=project,
+                        user=user,
+                        defaults={"workspace": workspace},
+                    )
         except Workspace.DoesNotExist:
             return Response({"error": "Workspace not found"}, status=status.HTTP_404_NOT_FOUND)
+        except Project.DoesNotExist:
+            return Response({"error": "Project not found"}, status=status.HTTP_404_NOT_FOUND)
 
         return Response(
             {
@@ -109,6 +138,16 @@ class NexusOnboardUserEndpoint(APIView):
                     "role": member.role,
                     "member_created": member_created,
                 },
+                "project": (
+                    {
+                        "id": str(project.id),
+                        "name": project.name,
+                        "role": project_member.role,
+                        "member_created": project_member_created,
+                    }
+                    if project is not None and project_member is not None
+                    else None
+                ),
             },
             status=status.HTTP_200_OK,
         )
