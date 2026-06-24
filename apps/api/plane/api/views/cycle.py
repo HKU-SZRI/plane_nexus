@@ -9,6 +9,8 @@ import json
 from django.core import serializers
 from django.utils import timezone
 from django.core.serializers.json import DjangoJSONEncoder
+from django.contrib.postgres.aggregates import ArrayAgg
+from django.contrib.postgres.fields import ArrayField
 from django.db.models import (
     Count,
     F,
@@ -16,7 +18,10 @@ from django.db.models import (
     OuterRef,
     Q,
     Sum,
+    Value,
 )
+from django.db.models.fields import UUIDField
+from django.db.models.functions import Coalesce
 
 # Third party imports
 from rest_framework import status
@@ -160,6 +165,17 @@ class CycleListCreateAPIEndpoint(BaseAPIView):
                         issue_cycle__issue__is_draft=False,
                         issue_cycle__deleted_at__isnull=True,
                     ),
+                )
+            )
+            .annotate(
+                assignee_ids=Coalesce(
+                    ArrayAgg(
+                        "issue_cycle__issue__assignees__id",
+                        distinct=True,
+                        filter=~Q(issue_cycle__issue__assignees__id__isnull=True)
+                        & Q(issue_cycle__issue__issue_assignee__deleted_at__isnull=True),
+                    ),
+                    Value([], output_field=ArrayField(UUIDField())),
                 )
             )
             .order_by(self.kwargs.get("order_by", "-created_at"))
