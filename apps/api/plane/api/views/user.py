@@ -10,9 +10,35 @@ from drf_spectacular.utils import OpenApiResponse
 # Module imports
 from plane.api.serializers import UserLiteSerializer
 from plane.api.views.base import BaseAPIView
-from plane.db.models import User
+from plane.db.models import User, APIToken
 from plane.utils.openapi.decorators import user_docs
 from plane.utils.openapi import USER_EXAMPLE
+
+
+class AdminUserApiTokenEndpoint(BaseAPIView):
+    """Service-token only: provision a personal API token for any user."""
+
+    def post(self, request, user_id):
+        # Only service tokens (is_service=True) may call this endpoint
+        caller_token = APIToken.objects.filter(token=request.auth, is_service=True).first()
+        if not caller_token:
+            return Response({"error": "Service token required"}, status=status.HTTP_403_FORBIDDEN)
+
+        target_user = User.objects.filter(pk=user_id).first()
+        if not target_user:
+            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        # get_or_create so re-calling is idempotent
+        api_token, created = APIToken.objects.get_or_create(
+            user=target_user,
+            label="nexus-provisioned",
+            defaults={"user_type": 0, "is_service": True},
+        )
+
+        return Response(
+            {"token": api_token.token, "user_id": str(user_id), "created": created},
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
 
 
 class UserEndpoint(BaseAPIView):

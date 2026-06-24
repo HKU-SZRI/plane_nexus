@@ -52,7 +52,7 @@ class ApiKeyRateThrottle(SimpleRateThrottle):
 
 class ServiceTokenRateThrottle(SimpleRateThrottle):
     scope = "service_token"
-    rate = "300/minute"
+    rate = "1000/minute"
 
     def get_cache_key(self, request, view):
         # Retrieve the API key from the request header

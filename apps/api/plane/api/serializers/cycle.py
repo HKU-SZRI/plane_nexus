@@ -127,6 +127,7 @@ class CycleSerializer(BaseSerializer):
     total_estimates = serializers.FloatField(read_only=True)
     completed_estimates = serializers.FloatField(read_only=True)
     started_estimates = serializers.FloatField(read_only=True)
+    assignee_ids = serializers.ListField(child=serializers.UUIDField(), read_only=True, default=list)
 
     class Meta:
         model = Cycle

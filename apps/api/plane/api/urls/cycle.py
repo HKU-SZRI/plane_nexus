@@ -12,16 +12,21 @@ from plane.api.views.cycle import (
     TransferCycleIssueAPIEndpoint,
     CycleArchiveUnarchiveAPIEndpoint,
 )
+from plane.api.views.compat import (
+    CycleV1ViewSet,
+    CycleProgressV1Endpoint,
+    CycleDateCheckV1Endpoint,
+)
 
 urlpatterns = [
     path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/cycles/",
-        CycleListCreateAPIEndpoint.as_view(http_method_names=["get", "post"]),
+        CycleV1ViewSet.as_view({"get": "list", "post": "create"}),
         name="cycles",
     ),
     path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/cycles/<uuid:pk>/",
-        CycleDetailAPIEndpoint.as_view(http_method_names=["get", "patch", "delete"]),
+        CycleV1ViewSet.as_view({"get": "retrieve", "patch": "partial_update", "delete": "destroy"}),
         name="cycles",
     ),
     path(
@@ -53,5 +58,15 @@ urlpatterns = [
         "workspaces/<str:slug>/projects/<uuid:project_id>/archived-cycles/<uuid:cycle_id>/unarchive/",
         CycleArchiveUnarchiveAPIEndpoint.as_view(http_method_names=["delete"]),
         name="cycle-archive-unarchive",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/cycles/<uuid:cycle_id>/progress/",
+        CycleProgressV1Endpoint.as_view(),
+        name="cycle-progress",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/cycles/date-check/",
+        CycleDateCheckV1Endpoint.as_view(),
+        name="cycle-date-check",
     ),
 ]

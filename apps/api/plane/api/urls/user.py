@@ -4,12 +4,17 @@
 
 from django.urls import path
 
-from plane.api.views import UserEndpoint
+from plane.api.views import UserEndpoint, AdminUserApiTokenEndpoint
 
 urlpatterns = [
     path(
         "users/me/",
         UserEndpoint.as_view(http_method_names=["get"]),
         name="users",
+    ),
+    path(
+        "users/<uuid:user_id>/api-tokens/",
+        AdminUserApiTokenEndpoint.as_view(http_method_names=["post"]),
+        name="admin-user-api-tokens",
     ),
 ]
