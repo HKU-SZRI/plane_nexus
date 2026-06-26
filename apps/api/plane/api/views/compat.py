@@ -12,6 +12,8 @@ from plane.app.views.cycle.base import CycleProgressEndpoint as _CycleProgressEn
 from plane.app.views.cycle.base import CycleDateCheckEndpoint as _CycleDateCheckEndpoint
 from plane.app.views.search.issue import IssueSearchEndpoint as _IssueSearchEndpoint
 from plane.app.views.workspace.favorite import WorkspaceFavoriteEndpoint as _WorkspaceFavoriteEndpoint
+from plane.app.views.issue.base import IssueViewSet as _IssueViewSet
+from plane.app.views.module.issue import ModuleIssueViewSet as _ModuleIssueViewSet
 
 
 class CycleV1ViewSet(_CycleViewSet):
@@ -31,4 +33,12 @@ class IssueSearchV1Endpoint(_IssueSearchEndpoint):
 
 
 class WorkspaceFavoriteV1Endpoint(_WorkspaceFavoriteEndpoint):
+    authentication_classes = [APIKeyAuthentication]
+
+
+class IssueV1ViewSet(_IssueViewSet):
+    authentication_classes = [APIKeyAuthentication]
+
+
+class ModuleIssueV1ViewSet(_ModuleIssueViewSet):
     authentication_classes = [APIKeyAuthentication]

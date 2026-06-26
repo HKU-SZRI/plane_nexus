@@ -20,6 +20,7 @@ from plane.api.views import (
     IssueAdvancedSearchEndpoint,
     IssueRelationListCreateAPIEndpoint,
 )
+from plane.api.views.compat import IssueV1ViewSet, ModuleIssueV1ViewSet
 
 # Deprecated url patterns
 old_url_patterns = [
@@ -35,13 +36,18 @@ old_url_patterns = [
     ),
     path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/issues/",
-        IssueListCreateAPIEndpoint.as_view(http_method_names=["get", "post"]),
+        IssueV1ViewSet.as_view({"get": "list", "post": "create"}),
         name="issue",
     ),
     path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:pk>/",
-        IssueDetailAPIEndpoint.as_view(http_method_names=["get", "patch", "delete"]),
+        IssueV1ViewSet.as_view({"get": "retrieve", "patch": "partial_update", "delete": "destroy"}),
         name="issue",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/modules/",
+        ModuleIssueV1ViewSet.as_view({"post": "create_issue_modules"}),
+        name="issue-modules",
     ),
     path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/links/",
@@ -104,12 +110,12 @@ new_url_patterns = [
     ),
     path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/work-items/",
-        IssueListCreateAPIEndpoint.as_view(http_method_names=["get", "post"]),
+        IssueV1ViewSet.as_view({"get": "list", "post": "create"}),
         name="work-item-list",
     ),
     path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/work-items/<uuid:pk>/",
-        IssueDetailAPIEndpoint.as_view(http_method_names=["get", "patch", "delete"]),
+        IssueV1ViewSet.as_view({"get": "retrieve", "patch": "partial_update", "delete": "destroy"}),
         name="work-item-detail",
     ),
     path(
