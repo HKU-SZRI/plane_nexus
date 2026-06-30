@@ -131,14 +131,22 @@ class ProjectMemberListCreateAPIEndpoint(BaseAPIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Get the workspace members that are present inside the workspace
-        project_members = ProjectMember.objects.filter(project_id=project_id, workspace__slug=slug).values_list(
-            "member_id", flat=True
+        # Fetch ProjectMember records with member info in one query
+        project_members = (
+            ProjectMember.objects
+            .filter(project_id=project_id, workspace__slug=slug, is_active=True)
+            .select_related("member")
         )
 
-        # Get all the users that are present inside the workspace
-        users = UserLiteSerializer(User.objects.filter(id__in=project_members), many=True).data
-        return Response(users, status=status.HTTP_200_OK)
+        # Build response: user fields + record id + role
+        result = []
+        for pm in project_members:
+            user_data = UserLiteSerializer(pm.member).data
+            user_data["member_id"] = str(pm.id)
+            user_data["role"] = pm.role
+            result.append(user_data)
+
+        return Response(result, status=status.HTTP_200_OK)
 
     @extend_schema(
         operation_id="create_project_member",

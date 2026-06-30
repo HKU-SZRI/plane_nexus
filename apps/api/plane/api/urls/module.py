@@ -5,22 +5,21 @@
 from django.urls import path
 
 from plane.api.views import (
-    ModuleListCreateAPIEndpoint,
-    ModuleDetailAPIEndpoint,
     ModuleIssueListCreateAPIEndpoint,
     ModuleIssueDetailAPIEndpoint,
     ModuleArchiveUnarchiveAPIEndpoint,
 )
+from plane.api.views.compat import ModuleV1ViewSet
 
 urlpatterns = [
     path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/modules/",
-        ModuleListCreateAPIEndpoint.as_view(http_method_names=["get", "post"]),
+        ModuleV1ViewSet.as_view({"get": "list", "post": "create"}),
         name="modules",
     ),
     path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/modules/<uuid:pk>/",
-        ModuleDetailAPIEndpoint.as_view(http_method_names=["get", "patch", "delete"]),
+        ModuleV1ViewSet.as_view({"get": "retrieve", "patch": "partial_update", "delete": "destroy"}),
         name="modules-detail",
     ),
     path(
