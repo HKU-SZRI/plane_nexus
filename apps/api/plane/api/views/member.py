@@ -2,9 +2,13 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
+# Python imports
+import json
+
 # Third Party imports
 from rest_framework.response import Response
 from rest_framework import status
+from django.core.serializers.json import DjangoJSONEncoder
 from drf_spectacular.utils import (
     extend_schema,
     OpenApiResponse,
@@ -15,6 +19,8 @@ from drf_spectacular.utils import (
 from .base import BaseAPIView
 from plane.api.serializers import UserLiteSerializer, ProjectMemberSerializer
 from plane.db.models import User, Workspace, WorkspaceMember, ProjectMember
+from plane.bgtasks.webhook_task import model_activity, webhook_activity
+from plane.utils.host import base_host
 from plane.utils.permissions import ProjectMemberPermission, WorkSpaceAdminPermission, ProjectAdminPermission
 from plane.utils.openapi import (
     WORKSPACE_SLUG_PARAMETER,
@@ -158,9 +164,45 @@ class ProjectMemberListCreateAPIEndpoint(BaseAPIView):
         request=OpenApiRequest(request=ProjectMemberSerializer),
     )
     def post(self, request, slug, project_id):
+        # A ProjectMember row is soft-deleted via is_active=False (not deleted_at), so a
+        # previously removed member still holds the unique (project, member) constraint.
+        # Reactivate that row instead of trying to create a duplicate.
+        existing_member = ProjectMember.objects.filter(
+            project_id=project_id, member_id=request.data.get("member")
+        ).first()
+
+        if existing_member:
+            current_instance = json.dumps(ProjectMemberSerializer(existing_member).data, cls=DjangoJSONEncoder)
+            serializer = ProjectMemberSerializer(
+                existing_member, data=request.data, partial=True, context={"slug": slug}
+            )
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            existing_member.is_active = True
+            existing_member.save(update_fields=["is_active"])
+            model_activity.delay(
+                model_name="project_member",
+                model_id=str(existing_member.id),
+                requested_data=request.data,
+                current_instance=current_instance,
+                actor_id=request.user.id,
+                slug=slug,
+                origin=base_host(request=request, is_app=True),
+            )
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
         serializer = ProjectMemberSerializer(data=request.data, context={"slug": slug})
         serializer.is_valid(raise_exception=True)
         serializer.save(project_id=project_id)
+        model_activity.delay(
+            model_name="project_member",
+            model_id=str(serializer.instance.id),
+            requested_data=request.data,
+            current_instance=None,
+            actor_id=request.user.id,
+            slug=slug,
+            origin=base_host(request=request, is_app=True),
+        )
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
@@ -210,9 +252,19 @@ class ProjectMemberDetailAPIEndpoint(ProjectMemberListCreateAPIEndpoint):
     )
     def patch(self, request, slug, project_id, pk):
         project_member = ProjectMember.objects.get(project_id=project_id, workspace__slug=slug, pk=pk)
+        current_instance = json.dumps(ProjectMemberSerializer(project_member).data, cls=DjangoJSONEncoder)
         serializer = ProjectMemberSerializer(project_member, data=request.data, partial=True, context={"slug": slug})
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        model_activity.delay(
+            model_name="project_member",
+            model_id=str(project_member.id),
+            requested_data=request.data,
+            current_instance=current_instance,
+            actor_id=request.user.id,
+            slug=slug,
+            origin=base_host(request=request, is_app=True),
+        )
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @extend_schema(
@@ -227,4 +279,17 @@ class ProjectMemberDetailAPIEndpoint(ProjectMemberListCreateAPIEndpoint):
         project_member = ProjectMember.objects.get(project_id=project_id, workspace__slug=slug, pk=pk)
         project_member.is_active = False
         project_member.save()
+        webhook_activity.delay(
+            event="project_member",
+            verb="deleted",
+            field=None,
+            old_value=None,
+            new_value=None,
+            actor_id=request.user.id,
+            slug=slug,
+            current_site=base_host(request=request, is_app=True),
+            event_id=project_member.id,
+            old_identifier=None,
+            new_identifier=None,
+        )
         return Response(status=status.HTTP_204_NO_CONTENT)

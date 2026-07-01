@@ -58,6 +58,7 @@ function WebhookDetailsPage({ params }: Route.ComponentProps) {
       module: formData.module,
       issue: formData.issue,
       issue_comment: formData.issue_comment,
+      project_member: formData.project_member,
     };
 
     try {

@@ -2,10 +2,14 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
+# Python imports
+import json
+
 # Third Party imports
 from rest_framework.response import Response
 from rest_framework import status
 from django.db.models import Min
+from django.core.serializers.json import DjangoJSONEncoder
 
 # Module imports
 from .base import BaseViewSet, BaseAPIView
@@ -20,6 +24,7 @@ from plane.app.permissions import WorkspaceUserPermission
 
 from plane.db.models import Project, ProjectMember, ProjectUserProperty, WorkspaceMember
 from plane.bgtasks.project_add_user_email_task import project_add_user_email
+from plane.bgtasks.webhook_task import model_activity, webhook_activity
 from plane.utils.host import base_host
 from plane.app.permissions.base import allow_permission, ROLE
 
@@ -83,10 +88,14 @@ class ProjectMemberViewSet(BaseViewSet):
                 )
 
         # Update roles in the members array based on the member_roles dictionary and set is_active to True
+        reactivated_member_snapshots = {}
         for project_member in ProjectMember.objects.filter(
             project_id=project_id,
             member_id__in=[member.get("member_id") for member in members],
         ):
+            reactivated_member_snapshots[str(project_member.member_id)] = json.dumps(
+                ProjectMemberSerializer(project_member).data, cls=DjangoJSONEncoder
+            )
             project_member.role = member_roles[str(project_member.member_id)]
             project_member.is_active = True
             bulk_project_members.append(project_member)
@@ -139,6 +148,20 @@ class ProjectMemberViewSet(BaseViewSet):
             project_id=project_id,
             member_id__in=[member.get("member_id") for member in members],
         )
+
+        # Fire the project_member webhook activity for each added/reactivated member
+        for project_member in project_members:
+            current_instance = reactivated_member_snapshots.get(str(project_member.member_id))
+            model_activity.delay(
+                model_name="project_member",
+                model_id=str(project_member.id),
+                requested_data={"role": project_member.role, "is_active": project_member.is_active},
+                current_instance=current_instance,
+                actor_id=request.user.id,
+                slug=slug,
+                origin=base_host(request=request, is_app=True),
+            )
+
         # Send emails to notify the users
         [
             project_add_user_email.delay(
@@ -261,10 +284,21 @@ class ProjectMemberViewSet(BaseViewSet):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
+        current_instance = json.dumps(ProjectMemberSerializer(project_member).data, cls=DjangoJSONEncoder)
+
         serializer = ProjectMemberSerializer(project_member, data=request.data, partial=True)
 
         if serializer.is_valid():
             serializer.save()
+            model_activity.delay(
+                model_name="project_member",
+                model_id=str(project_member.id),
+                requested_data=request.data,
+                current_instance=current_instance,
+                actor_id=request.user.id,
+                slug=slug,
+                origin=base_host(request=request, is_app=True),
+            )
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -299,6 +333,19 @@ class ProjectMemberViewSet(BaseViewSet):
 
         project_member.is_active = False
         project_member.save()
+        webhook_activity.delay(
+            event="project_member",
+            verb="deleted",
+            field=None,
+            old_value=None,
+            new_value=None,
+            actor_id=request.user.id,
+            slug=slug,
+            current_site=base_host(request=request, is_app=True),
+            event_id=project_member.id,
+            old_identifier=None,
+            new_identifier=None,
+        )
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST])
@@ -327,6 +374,19 @@ class ProjectMemberViewSet(BaseViewSet):
         # Deactivate the user
         project_member.is_active = False
         project_member.save()
+        webhook_activity.delay(
+            event="project_member",
+            verb="deleted",
+            field=None,
+            old_value=None,
+            new_value=None,
+            actor_id=request.user.id,
+            slug=slug,
+            current_site=base_host(request=request, is_app=True),
+            event_id=project_member.id,
+            old_identifier=None,
+            new_identifier=None,
+        )
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
