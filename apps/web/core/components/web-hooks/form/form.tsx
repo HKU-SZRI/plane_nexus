@@ -36,6 +36,7 @@ const initialWebhookPayload: Partial<IWebhook> = {
   issue_comment: true,
   module: true,
   project: true,
+  project_member: true,
   url: "",
 };
 
@@ -62,7 +63,8 @@ export const WebhookForm = observer(function WebhookForm(props: Props) {
   useEffect(() => {
     if (!data) return;
 
-    if (data.project && data.cycle && data.module && data.issue && data.issue_comment) setWebhookEventType("all");
+    if (data.project && data.cycle && data.module && data.issue && data.issue_comment && data.project_member)
+      setWebhookEventType("all");
     else setWebhookEventType("individual");
   }, [data]);
 

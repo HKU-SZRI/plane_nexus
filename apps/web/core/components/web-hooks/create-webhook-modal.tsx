@@ -59,6 +59,7 @@ export function CreateWebhookModal(props: ICreateWebhookModal) {
         module: true,
         issue: true,
         issue_comment: true,
+        project_member: true,
       };
     else
       payload = {
@@ -68,6 +69,7 @@ export function CreateWebhookModal(props: ICreateWebhookModal) {
         module: formData.module ?? false,
         issue: formData.issue ?? false,
         issue_comment: formData.issue_comment ?? false,
+        project_member: formData.project_member ?? false,
       };
 
     await createWebhook(workspaceSlug.toString(), payload)

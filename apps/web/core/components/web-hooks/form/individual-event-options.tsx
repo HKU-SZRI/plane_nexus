@@ -39,6 +39,11 @@ export const INDIVIDUAL_WEBHOOK_OPTIONS: {
     label: "Work item comments",
     description: "Comment posted, updated, or deleted",
   },
+  {
+    key: "project_member",
+    label: "Project members",
+    description: "Project member added, role updated, or removed",
+  },
 ];
 
 type Props = {

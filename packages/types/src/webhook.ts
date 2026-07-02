@@ -13,6 +13,7 @@ export interface IWebhook {
   issue_comment: boolean;
   module: boolean;
   project: boolean;
+  project_member: boolean;
   secret_key?: string;
   updated_at: string;
   url: string;
