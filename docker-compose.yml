@@ -1,16 +1,22 @@
-name: plane-app
-
 services:
   web:
     container_name: web
-    image: makeplane/plane-frontend:${APP_RELEASE:-v1.3.0}
+    build:
+      context: .
+      dockerfile: ./apps/web/Dockerfile.web
+      args:
+        DOCKER_BUILDKIT: 1
     restart: always
     depends_on:
       - api
 
   admin:
     container_name: admin
-    image: makeplane/plane-admin:${APP_RELEASE:-v1.3.0}
+    build:
+      context: .
+      dockerfile: ./apps/admin/Dockerfile.admin
+      args:
+        DOCKER_BUILDKIT: 1
     restart: always
     depends_on:
       - api
@@ -18,7 +24,11 @@ services:
 
   space:
     container_name: space
-    image: makeplane/plane-space:${APP_RELEASE:-v1.3.0}
+    build:
+      context: .
+      dockerfile: ./apps/space/Dockerfile.space
+      args:
+        DOCKER_BUILDKIT: 1
     restart: always
     depends_on:
       - api
@@ -34,8 +44,6 @@ services:
         DOCKER_BUILDKIT: 1
     restart: always
     command: ./bin/docker-entrypoint-api.sh
-    volumes:
-      - ./apps/api:/code
     env_file:
       - ./apps/api/.env
     depends_on:
@@ -52,8 +60,6 @@ services:
         DOCKER_BUILDKIT: 1
     restart: always
     command: ./bin/docker-entrypoint-worker.sh
-    volumes:
-      - ./apps/api:/code
     env_file:
       - ./apps/api/.env
     depends_on:
@@ -71,8 +77,6 @@ services:
         DOCKER_BUILDKIT: 1
     restart: always
     command: ./bin/docker-entrypoint-beat.sh
-    volumes:
-      - ./apps/api:/code
     env_file:
       - ./apps/api/.env
     depends_on:
@@ -90,8 +94,6 @@ services:
         DOCKER_BUILDKIT: 1
     restart: no
     command: ./bin/docker-entrypoint-migrator.sh
-    volumes:
-      - ./apps/api:/code
     env_file:
       - ./apps/api/.env
     depends_on:
@@ -100,14 +102,12 @@ services:
 
   live:
     container_name: plane-live
-    image: makeplane/plane-live:${APP_RELEASE:-v1.3.0}
+    build:
+      context: .
+      dockerfile: ./apps/live/Dockerfile.live
+      args:
+        DOCKER_BUILDKIT: 1
     restart: always
-    environment:
-      API_BASE_URL: ${API_BASE_URL:-http://api:8000}
-      LIVE_SERVER_SECRET_KEY: ${LIVE_SERVER_SECRET_KEY:-}
-      REDIS_HOST: ${REDIS_HOST:-plane-redis}
-      REDIS_PORT: ${REDIS_PORT:-6379}
-      REDIS_URL: ${REDIS_URL:-redis://plane-redis:6379/}
 
   plane-db:
     container_name: plane-db
@@ -160,10 +160,12 @@ services:
   # Host Caddy handles SSL termination and forwards to port 8080
   proxy:
     container_name: proxy
-    image: makeplane/plane-proxy:${APP_RELEASE:-v1.3.0}
+    build:
+      context: ./apps/proxy
+      dockerfile: Dockerfile.ce
     restart: always
     ports:
-      - 80:80
+      - 8080:80
     environment:
       FILE_SIZE_LIMIT: ${FILE_SIZE_LIMIT:-5242880}
       BUCKET_NAME: ${AWS_S3_BUCKET_NAME:-uploads}
