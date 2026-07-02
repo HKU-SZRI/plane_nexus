@@ -9,6 +9,8 @@ import json
 from rest_framework.response import Response
 from rest_framework import status
 from django.core.serializers.json import DjangoJSONEncoder
+from django.db.models import Count, Q
+from django.utils import timezone
 from drf_spectacular.utils import (
     extend_schema,
     OpenApiResponse,
@@ -18,7 +20,7 @@ from drf_spectacular.utils import (
 # Module imports
 from .base import BaseAPIView
 from plane.api.serializers import UserLiteSerializer, ProjectMemberSerializer
-from plane.db.models import User, Workspace, WorkspaceMember, ProjectMember
+from plane.db.models import User, Workspace, WorkspaceMember, ProjectMember, Project
 from plane.bgtasks.webhook_task import model_activity, webhook_activity
 from plane.utils.host import base_host
 from plane.utils.permissions import ProjectMemberPermission, WorkSpaceAdminPermission, ProjectAdminPermission
@@ -58,7 +60,11 @@ class WorkspaceMemberAPIEndpoint(BaseAPIView):
                                     "role": {
                                         "type": "integer",
                                         "description": "Member role in the workspace",
-                                    }
+                                    },
+                                    "is_active": {
+                                        "type": "boolean",
+                                        "description": "Whether the member is active in the workspace",
+                                    },
                                 },
                             },
                         ]
@@ -92,9 +98,118 @@ class WorkspaceMemberAPIEndpoint(BaseAPIView):
         for workspace_member in workspace_members:
             user_data = UserLiteSerializer(workspace_member.member).data
             user_data["role"] = workspace_member.role
+            user_data["is_active"] = workspace_member.is_active
             users_with_roles.append(user_data)
 
         return Response(users_with_roles, status=status.HTTP_200_OK)
+
+
+class WorkspaceMemberDetailAPIEndpoint(BaseAPIView):
+    permission_classes = [WorkSpaceAdminPermission]
+
+    @extend_schema(
+        operation_id="update_workspace_member",
+        summary="Update a workspace member",
+        description=(
+            "Update a workspace member identified by their user id. Currently supports "
+            "toggling `is_active`. Deactivating a member also deactivates their project "
+            "memberships in the workspace."
+        ),
+        tags=["Members"],
+        parameters=[WORKSPACE_SLUG_PARAMETER],
+        request=OpenApiRequest(
+            request={
+                "type": "object",
+                "properties": {
+                    "is_active": {
+                        "type": "boolean",
+                        "description": "Whether the member is active in the workspace",
+                    }
+                },
+            }
+        ),
+        responses={
+            200: OpenApiResponse(description="Workspace member updated"),
+            400: OpenApiResponse(description="Invalid request"),
+            401: UNAUTHORIZED_RESPONSE,
+            403: FORBIDDEN_RESPONSE,
+            404: WORKSPACE_NOT_FOUND_RESPONSE,
+        },
+    )
+    def patch(self, request, slug, pk):
+        """Update a workspace member
+
+        `pk` is the member's user id (the same identifier returned as `id` by the
+        workspace members list endpoint).
+        """
+        if not Workspace.objects.filter(slug=slug).exists():
+            return Response(
+                {"error": "Provided workspace does not exist"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            workspace_member = WorkspaceMember.objects.get(workspace__slug=slug, member_id=pk)
+        except WorkspaceMember.DoesNotExist:
+            return Response(
+                {"error": "Member does not exist in the workspace"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        is_active = request.data.get("is_active")
+        if not isinstance(is_active, bool):
+            return Response(
+                {"error": "`is_active` (boolean) is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Deactivating a member: guard against removing the only workspace admin
+        if not is_active:
+            if (
+                workspace_member.role == 20
+                and not WorkspaceMember.objects.filter(
+                    workspace__slug=slug, role=20, is_active=True
+                ).count()
+                > 1
+            ):
+                return Response(
+                    {"error": "You cannot deactivate the only admin of the workspace."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            if (
+                Project.objects.annotate(
+                    total_members=Count("project_projectmember"),
+                    member_with_role=Count(
+                        "project_projectmember",
+                        filter=Q(
+                            project_projectmember__member_id=workspace_member.member_id,
+                            project_projectmember__role=20,
+                        ),
+                    ),
+                )
+                .filter(total_members=1, member_with_role=1, workspace__slug=slug)
+                .exists()
+            ):
+                return Response(
+                    {
+                        "error": "This member is the only admin of some projects; reassign a project admin before deactivating."  # noqa: E501
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            # Cascade: deactivate the member's project memberships in this workspace
+            ProjectMember.objects.filter(
+                workspace__slug=slug, member_id=workspace_member.member_id, is_active=True
+            ).update(is_active=False, updated_at=timezone.now())
+
+        workspace_member.is_active = is_active
+        workspace_member.save(update_fields=["is_active"])
+
+        user_data = UserLiteSerializer(workspace_member.member).data
+        user_data["role"] = workspace_member.role
+        user_data["is_active"] = workspace_member.is_active
+        return Response(user_data, status=status.HTTP_200_OK)
 
 
 class ProjectMemberListCreateAPIEndpoint(BaseAPIView):
@@ -189,6 +304,19 @@ class ProjectMemberListCreateAPIEndpoint(BaseAPIView):
                 slug=slug,
                 origin=base_host(request=request, is_app=True),
             )
+            webhook_activity.delay(
+                event="project_member",
+                verb="updated",
+                field="is_active",
+                old_value=False,
+                new_value=True,
+                actor_id=request.user.id,
+                slug=slug,
+                current_site=base_host(request=request, is_app=True),
+                event_id=existing_member.id,
+                old_identifier=None,
+                new_identifier=None,
+            )
             return Response(serializer.data, status=status.HTTP_200_OK)
 
         serializer = ProjectMemberSerializer(data=request.data, context={"slug": slug})
@@ -202,6 +330,19 @@ class ProjectMemberListCreateAPIEndpoint(BaseAPIView):
             actor_id=request.user.id,
             slug=slug,
             origin=base_host(request=request, is_app=True),
+        )
+        webhook_activity.delay(
+            event="project_member",
+            verb="created",
+            field=None,
+            old_value=None,
+            new_value=None,
+            actor_id=request.user.id,
+            slug=slug,
+            current_site=base_host(request=request, is_app=True),
+            event_id=serializer.instance.id,
+            old_identifier=None,
+            new_identifier=None,
         )
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 

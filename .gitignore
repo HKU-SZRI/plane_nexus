@@ -114,3 +114,6 @@ scripts/
 
 # i18n auto-generated types (regenerated on every build)
 packages/i18n/src/types/keys.generated.ts
+
+# Django collected static files
+apps/api/plane/static-assets/

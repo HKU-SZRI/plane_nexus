@@ -50,7 +50,12 @@ from .module import (
     ModuleArchiveUnarchiveAPIEndpoint,
 )
 
-from .member import ProjectMemberListCreateAPIEndpoint, ProjectMemberDetailAPIEndpoint, WorkspaceMemberAPIEndpoint
+from .member import (
+    ProjectMemberListCreateAPIEndpoint,
+    ProjectMemberDetailAPIEndpoint,
+    WorkspaceMemberAPIEndpoint,
+    WorkspaceMemberDetailAPIEndpoint,
+)
 
 from .intake import (
     IntakeIssueListCreateAPIEndpoint,

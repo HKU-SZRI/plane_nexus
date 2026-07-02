@@ -13,14 +13,33 @@ from rest_framework.views import APIView
 from plane.db.models import Profile, Project, ProjectMember, ProjectUserProperty, User, Workspace, WorkspaceMember
 
 
+def _check_internal_key(request) -> bool:
+    expected_key = os.getenv("PLANE_NEXUS_ONBOARDING_KEY", "")
+    provided_key = request.headers.get("X-Internal-Key", "")
+    return bool(expected_key) and provided_key == expected_key
+
+
+class NexusListWorkspacesEndpoint(APIView):
+    """Internal, service-key-authenticated endpoint so Nexus can list real
+    Plane workspaces instead of relying on a hardcoded/guessed slug list."""
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def get(self, request):
+        if not _check_internal_key(request):
+            return Response({"error": "Invalid internal key"}, status=status.HTTP_403_FORBIDDEN)
+
+        workspaces = Workspace.objects.filter(deleted_at__isnull=True).order_by("name").values("slug", "name")
+        return Response({"workspaces": list(workspaces)}, status=status.HTTP_200_OK)
+
+
 class NexusOnboardUserEndpoint(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
 
     def post(self, request):
-        expected_key = os.getenv("PLANE_NEXUS_ONBOARDING_KEY", "")
-        provided_key = request.headers.get("X-Internal-Key", "")
-        if not expected_key or provided_key != expected_key:
+        if not _check_internal_key(request):
             return Response({"error": "Invalid internal key"}, status=status.HTTP_403_FORBIDDEN)
 
         email = str(request.data.get("email") or "").strip().lower()
