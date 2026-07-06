@@ -15,6 +15,8 @@ from plane.app.views.workspace.favorite import WorkspaceFavoriteEndpoint as _Wor
 from plane.app.views.issue.base import IssueViewSet as _IssueViewSet
 from plane.app.views.module.issue import ModuleIssueViewSet as _ModuleIssueViewSet
 from plane.app.views.module.base import ModuleViewSet as _ModuleViewSet
+from plane.app.views.view.base import IssueViewViewSet as _IssueViewViewSet
+
 
 
 class CycleV1ViewSet(_CycleViewSet):
@@ -47,3 +49,8 @@ class ModuleIssueV1ViewSet(_ModuleIssueViewSet):
 
 class ModuleV1ViewSet(_ModuleViewSet):
     authentication_classes = [APIKeyAuthentication]
+
+
+class IssueViewV1ViewSet(_IssueViewViewSet):
+    authentication_classes = [APIKeyAuthentication]
+
