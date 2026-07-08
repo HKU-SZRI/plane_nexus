@@ -17,6 +17,7 @@ from .sticky import urlpatterns as sticky_patterns
 from .search import urlpatterns as search_patterns
 from .workspace import urlpatterns as workspace_patterns
 from .view import urlpatterns as view_patterns
+from .page import urlpatterns as page_patterns
 
 urlpatterns = [
     *asset_patterns,
@@ -34,5 +35,6 @@ urlpatterns = [
     *search_patterns,
     *workspace_patterns,
     *view_patterns,
+    *page_patterns,
 ]
 

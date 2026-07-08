@@ -16,6 +16,7 @@ from plane.app.views.issue.base import IssueViewSet as _IssueViewSet
 from plane.app.views.module.issue import ModuleIssueViewSet as _ModuleIssueViewSet
 from plane.app.views.module.base import ModuleViewSet as _ModuleViewSet
 from plane.app.views.view.base import IssueViewViewSet as _IssueViewViewSet
+from plane.app.views.page.base import PageViewSet as _PageViewSet
 
 
 
@@ -52,5 +53,9 @@ class ModuleV1ViewSet(_ModuleViewSet):
 
 
 class IssueViewV1ViewSet(_IssueViewViewSet):
+    authentication_classes = [APIKeyAuthentication]
+
+
+class PageV1ViewSet(_PageViewSet):
     authentication_classes = [APIKeyAuthentication]
 
