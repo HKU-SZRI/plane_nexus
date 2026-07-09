@@ -11,4 +11,24 @@ urlpatterns = [
         PageV1ViewSet.as_view({"get": "list", "post": "create"}),
         name="project-pages",
     ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/",
+        PageV1ViewSet.as_view({"get": "retrieve", "patch": "partial_update", "delete": "destroy"}),
+        name="project-pages",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/archive/",
+        PageV1ViewSet.as_view({"post": "archive", "delete": "unarchive"}),
+        name="project-page-archive-unarchive",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/lock/",
+        PageV1ViewSet.as_view({"post": "lock", "delete": "unlock"}),
+        name="project-pages-lock-unlock",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/access/",
+        PageV1ViewSet.as_view({"post": "access"}),
+        name="project-pages-access",
+    ),
 ]
