@@ -489,8 +489,12 @@ class ProjectAssetEndpoint(BaseAPIView):
         if entity_type == FileAsset.EntityTypeContext.WORKSPACE_LOGO:
             return {"workspace_id": entity_id}
 
-        if entity_type == FileAsset.EntityTypeContext.PROJECT_COVER:
-            return {"project_id": entity_id}
+        # PROJECT_COVER has no extra identifier field: post() already sets
+        # project_id from the URL, and this endpoint is inherently
+        # project-scoped, so entity_identifier == that same project_id.
+        # Returning {"project_id": entity_id} here collided with the
+        # explicit project_id=project_id kwarg in post()'s FileAsset.create()
+        # call, raising "got multiple values for keyword argument 'project_id'".
 
         if entity_type in [
             FileAsset.EntityTypeContext.USER_AVATAR,

@@ -31,6 +31,8 @@ from plane.app.views.module.issue import ModuleIssueViewSet as _ModuleIssueViewS
 from plane.app.views.module.base import ModuleViewSet as _ModuleViewSet
 from plane.app.views.view.base import IssueViewViewSet as _IssueViewViewSet
 from plane.app.views.page.base import PageViewSet as _PageViewSet
+from plane.app.views.page.base import PagesDescriptionViewSet as _PagesDescriptionViewSet
+from plane.app.views.asset.v2 import ProjectAssetEndpoint as _ProjectAssetEndpoint
 
 
 
@@ -153,6 +155,14 @@ class IssueViewV1ViewSet(_IssueViewViewSet):
 
 
 class PageV1ViewSet(_PaginatedListShimMixin, _PageViewSet):
+    authentication_classes = [APIKeyAuthentication]
+
+
+class PageDescriptionV1ViewSet(_PagesDescriptionViewSet):
+    authentication_classes = [APIKeyAuthentication]
+
+
+class ProjectAssetV1Endpoint(_ProjectAssetEndpoint):
     authentication_classes = [APIKeyAuthentication]
 
 
