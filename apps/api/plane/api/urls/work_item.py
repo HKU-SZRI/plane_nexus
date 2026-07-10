@@ -16,17 +16,16 @@ from plane.api.views import (
     IssueAttachmentListCreateAPIEndpoint,
     IssueAttachmentDetailAPIEndpoint,
     WorkspaceIssueAPIEndpoint,
-    IssueSearchEndpoint,
     IssueAdvancedSearchEndpoint,
     IssueRelationListCreateAPIEndpoint,
 )
-from plane.api.views.compat import IssueV1ViewSet, ModuleIssueV1ViewSet
+from plane.api.views.compat import IssueV1ViewSet, ModuleIssueV1ViewSet, WorkItemSearchV1Endpoint
 
 # Deprecated url patterns
 old_url_patterns = [
     path(
         "workspaces/<str:slug>/issues/search/",
-        IssueSearchEndpoint.as_view(http_method_names=["get"]),
+        WorkItemSearchV1Endpoint.as_view(http_method_names=["get"]),
         name="issue-search",
     ),
     path(
@@ -95,7 +94,7 @@ old_url_patterns = [
 new_url_patterns = [
     path(
         "workspaces/<str:slug>/work-items/search/",
-        IssueSearchEndpoint.as_view(http_method_names=["get"]),
+        WorkItemSearchV1Endpoint.as_view(http_method_names=["get"]),
         name="work-item-search",
     ),
     path(
