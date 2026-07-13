@@ -34,6 +34,13 @@ class NexusListWorkspacesEndpoint(APIView):
         return Response({"workspaces": list(workspaces)}, status=status.HTTP_200_OK)
 
 
+def _display_name(first_name: str, last_name: str, email: str) -> str:
+    """姓(last_name)+名(first_name)：中文姓在前无空格连写，其他语种名在前带空格。"""
+    if any("一" <= ch <= "鿿" for ch in f"{first_name}{last_name}"):
+        return (last_name + first_name) or email.split("@")[0]
+    return f"{first_name} {last_name}".strip() or email.split("@")[0]
+
+
 def _onboard_member(workspace, project, email, first_name, last_name, role) -> dict:
     """Get-or-create a Plane User/Profile/WorkspaceMember(/ProjectMember) for one member.
 
@@ -49,6 +56,7 @@ def _onboard_member(workspace, project, email, first_name, last_name, role) -> d
                 username=uuid.uuid4().hex,
                 first_name=first_name,
                 last_name=last_name,
+                display_name=_display_name(first_name, last_name, email),
             )
             user.set_password(get_random_string(32))
             user.is_password_autoset = True
@@ -64,6 +72,10 @@ def _onboard_member(workspace, project, email, first_name, last_name, role) -> d
             if last_name and not user.last_name:
                 user.last_name = last_name
                 update_fields.append("last_name")
+            real_name = _display_name(first_name, last_name, email)
+            if real_name != email.split("@")[0] and user.display_name == user.email.split("@")[0]:
+                user.display_name = real_name
+                update_fields.append("display_name")
             if not getattr(user, "is_email_verified", False):
                 user.is_email_verified = True
                 update_fields.append("is_email_verified")
