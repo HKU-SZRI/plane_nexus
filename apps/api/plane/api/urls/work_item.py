@@ -15,11 +15,18 @@ from plane.api.views import (
     IssueActivityDetailAPIEndpoint,
     IssueAttachmentListCreateAPIEndpoint,
     IssueAttachmentDetailAPIEndpoint,
-    WorkspaceIssueAPIEndpoint,
     IssueAdvancedSearchEndpoint,
     IssueRelationListCreateAPIEndpoint,
 )
-from plane.api.views.compat import IssueV1ViewSet, ModuleIssueV1ViewSet, WorkItemSearchV1Endpoint
+from plane.api.views.compat import (
+    IssueDetailIdentifierV1Endpoint,
+    IssueRelationV1ViewSet,
+    IssueV1ViewSet,
+    ModuleIssueV1ViewSet,
+    SubIssuesV1Endpoint,
+    WorkItemDescriptionVersionV1Endpoint,
+    WorkItemSearchV1Endpoint,
+)
 
 # Deprecated url patterns
 old_url_patterns = [
@@ -30,7 +37,7 @@ old_url_patterns = [
     ),
     path(
         "workspaces/<str:slug>/issues/<str:project_identifier>-<str:issue_identifier>/",
-        WorkspaceIssueAPIEndpoint.as_view(http_method_names=["get"]),
+        IssueDetailIdentifierV1Endpoint.as_view(http_method_names=["get"]),
         name="issue-by-identifier",
     ),
     path(
@@ -47,6 +54,16 @@ old_url_patterns = [
         "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/modules/",
         ModuleIssueV1ViewSet.as_view({"post": "create_issue_modules"}),
         name="issue-modules",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/issue-relation/",
+        IssueRelationV1ViewSet.as_view({"get": "list"}),
+        name="issue-relation",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/sub-issues/",
+        SubIssuesV1Endpoint.as_view(http_method_names=["get"]),
+        name="sub-issues",
     ),
     path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/links/",
@@ -104,7 +121,7 @@ new_url_patterns = [
     ),
     path(
         "workspaces/<str:slug>/work-items/<str:project_identifier>-<str:issue_identifier>/",
-        WorkspaceIssueAPIEndpoint.as_view(http_method_names=["get"]),
+        IssueDetailIdentifierV1Endpoint.as_view(http_method_names=["get"]),
         name="work-item-by-identifier",
     ),
     path(
@@ -116,6 +133,16 @@ new_url_patterns = [
         "workspaces/<str:slug>/projects/<uuid:project_id>/work-items/<uuid:pk>/",
         IssueV1ViewSet.as_view({"get": "retrieve", "patch": "partial_update", "delete": "destroy"}),
         name="work-item-detail",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/work-items/<uuid:work_item_id>/description-versions/",
+        WorkItemDescriptionVersionV1Endpoint.as_view(http_method_names=["get"]),
+        name="work-item-description-version-list",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/work-items/<uuid:work_item_id>/description-versions/<uuid:pk>/",
+        WorkItemDescriptionVersionV1Endpoint.as_view(http_method_names=["get"]),
+        name="work-item-description-version-detail",
     ),
     path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/work-items/<uuid:issue_id>/links/",

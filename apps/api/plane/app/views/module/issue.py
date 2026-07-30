@@ -20,6 +20,7 @@ from rest_framework.response import Response
 from plane.app.permissions import allow_permission, ROLE
 from plane.app.serializers import ModuleIssueSerializer
 from plane.bgtasks.issue_activities_task import issue_activity
+from plane.bgtasks.webhook_task import notify_issue_membership_change
 from plane.db.models import (
     Issue,
     FileAsset,
@@ -243,6 +244,10 @@ class ModuleIssueViewSet(BaseViewSet):
             )
             for issue in issues
         ]
+        # Webhook so downstream consumers (NEXUS graph sync) see the membership change.
+        notify_issue_membership_change(
+            issues, "module", slug, str(request.user.id), base_host(request=request, is_app=True)
+        )
         return Response({"message": "success"}, status=status.HTTP_201_CREATED)
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
@@ -312,6 +317,10 @@ class ModuleIssueViewSet(BaseViewSet):
             )
             module_issue.delete()
 
+        if modules or removed_modules:
+            notify_issue_membership_change(
+                [issue_id], "module", slug, str(request.user.id), base_host(request=request, is_app=True)
+            )
         return Response({"message": "success"}, status=status.HTTP_201_CREATED)
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
@@ -334,4 +343,7 @@ class ModuleIssueViewSet(BaseViewSet):
             origin=base_host(request=request, is_app=True),
         )
         module_issue.delete()
+        notify_issue_membership_change(
+            [issue_id], "module", slug, str(request.user.id), base_host(request=request, is_app=True)
+        )
         return Response(status=status.HTTP_204_NO_CONTENT)

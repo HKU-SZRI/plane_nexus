@@ -499,9 +499,21 @@ def model_activity(model_name, model_id, requested_data, current_instance, actor
 
     # Loop through all keys in requested data and check the current value and requested value
     for key in requested_data:
-        # Check if key is present in current instance or not
-        if key in current_instance:
-            current_value = current_instance.get(key, None)
+        # The request body and the serialized instance sometimes spell the same
+        # field differently — the web client sends "state" while
+        # IssueDetailSerializer exposes it as "state_id". Resolve the matching
+        # instance key (raw, "<key>_id", or de-suffixed) so field changes like
+        # state aren't silently dropped and never webhooked.
+        instance_key = next(
+            (
+                k
+                for k in (key, f"{key}_id", key[:-3] if key.endswith("_id") else None)
+                if k and k in current_instance
+            ),
+            None,
+        )
+        if instance_key is not None:
+            current_value = current_instance.get(instance_key, None)
             requested_value = requested_data.get(key, None)
             if current_value != requested_value:
                 webhook_activity.delay(
@@ -519,3 +531,31 @@ def model_activity(model_name, model_id, requested_data, current_instance, actor
                 )
 
     return
+
+
+def notify_issue_membership_change(issue_ids, field, slug, actor_id, origin=None):
+    """Fire an ``issue`` ``updated`` webhook per affected issue for module/cycle
+    membership changes.
+
+    The app views for adding/removing an issue to a module or cycle route only
+    through ``issue_activity`` (which writes the activity log but never dispatches
+    a webhook), so external webhook consumers such as the NEXUS graph sync never
+    learn about module/cycle membership changes. NEXUS keys off ``event="issue"``
+    to resync the whole workspace, so a bare issue-updated event is sufficient.
+    """
+    for issue_id in issue_ids:
+        if not issue_id:
+            continue
+        webhook_activity.delay(
+            event="issue",
+            verb="updated",
+            field=field,
+            old_value=None,
+            new_value=None,
+            actor_id=actor_id,
+            slug=slug,
+            current_site=origin,
+            event_id=str(issue_id),
+            old_identifier=None,
+            new_identifier=None,
+        )

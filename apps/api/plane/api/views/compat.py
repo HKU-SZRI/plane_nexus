@@ -20,21 +20,23 @@ from rest_framework.response import Response
 
 from plane.api.middleware.api_authentication import APIKeyAuthentication
 from plane.api.views.issue import IssueSearchEndpoint as _WorkItemSearchEndpoint
-from plane.db.models import Issue, Label
-from plane.app.views.cycle.base import CycleViewSet as _CycleViewSet
-from plane.app.views.cycle.base import CycleProgressEndpoint as _CycleProgressEndpoint
-from plane.app.views.cycle.base import CycleDateCheckEndpoint as _CycleDateCheckEndpoint
-from plane.app.views.search.issue import IssueSearchEndpoint as _IssueSearchEndpoint
-from plane.app.views.workspace.favorite import WorkspaceFavoriteEndpoint as _WorkspaceFavoriteEndpoint
-from plane.app.views.issue.base import IssueViewSet as _IssueViewSet
-from plane.app.views.module.issue import ModuleIssueViewSet as _ModuleIssueViewSet
-from plane.app.views.module.base import ModuleViewSet as _ModuleViewSet
-from plane.app.views.view.base import IssueViewViewSet as _IssueViewViewSet
-from plane.app.views.page.base import PageViewSet as _PageViewSet
-from plane.app.views.page.base import PagesDescriptionViewSet as _PagesDescriptionViewSet
 from plane.app.views.asset.v2 import ProjectAssetEndpoint as _ProjectAssetEndpoint
-
-
+from plane.app.views.cycle.base import CycleViewSet as _CycleViewSet
+from plane.app.views.cycle.base import CycleDateCheckEndpoint as _CycleDateCheckEndpoint
+from plane.app.views.cycle.base import CycleProgressEndpoint as _CycleProgressEndpoint
+from plane.app.views.issue.base import IssueDetailIdentifierEndpoint as _IssueDetailIdentifierEndpoint
+from plane.app.views.issue.base import IssueViewSet as _IssueViewSet
+from plane.app.views.issue.relation import IssueRelationViewSet as _IssueRelationViewSet
+from plane.app.views.issue.sub_issue import SubIssuesEndpoint as _SubIssuesEndpoint
+from plane.app.views.issue.version import WorkItemDescriptionVersionEndpoint as _WorkItemDescriptionVersionEndpoint
+from plane.app.views.module.base import ModuleViewSet as _ModuleViewSet
+from plane.app.views.module.issue import ModuleIssueViewSet as _ModuleIssueViewSet
+from plane.app.views.page.base import PagesDescriptionViewSet as _PagesDescriptionViewSet
+from plane.app.views.page.base import PageViewSet as _PageViewSet
+from plane.app.views.search.issue import IssueSearchEndpoint as _IssueSearchEndpoint
+from plane.app.views.view.base import IssueViewViewSet as _IssueViewViewSet
+from plane.app.views.workspace.favorite import WorkspaceFavoriteEndpoint as _WorkspaceFavoriteEndpoint
+from plane.db.models import Issue, Label
 
 class _PaginatedListShimMixin:
     """Wrap flat-array list responses in the public API's pagination envelope.
@@ -166,6 +168,22 @@ class ProjectAssetV1Endpoint(_ProjectAssetEndpoint):
     authentication_classes = [APIKeyAuthentication]
 
 
+class WorkItemDescriptionVersionV1Endpoint(_WorkItemDescriptionVersionEndpoint):
+    authentication_classes = [APIKeyAuthentication]
+
+
+class IssueRelationV1ViewSet(_IssueRelationViewSet):
+    authentication_classes = [APIKeyAuthentication]
+
+
+class SubIssuesV1Endpoint(_SubIssuesEndpoint):
+    authentication_classes = [APIKeyAuthentication]
+
+
+class IssueDetailIdentifierV1Endpoint(_IssueDetailIdentifierEndpoint):
+    authentication_classes = [APIKeyAuthentication]
+
+
 class WorkItemSearchV1Endpoint(_WorkItemSearchEndpoint):
     """GET /work-items/search/, reimplemented on top of the same query the
     upstream IssueSearchEndpoint.get() runs, plus:
@@ -269,4 +287,3 @@ class WorkItemSearchV1Endpoint(_WorkItemSearchEndpoint):
                 row["labels"] = [{"id": lid} for lid in row.pop("_label_ids")]
 
         return Response({"issues": issue_results}, status=status.HTTP_200_OK)
-

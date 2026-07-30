@@ -22,6 +22,7 @@ from rest_framework.response import Response
 from .. import BaseViewSet
 from plane.app.serializers import CycleIssueSerializer
 from plane.bgtasks.issue_activities_task import issue_activity
+from plane.bgtasks.webhook_task import notify_issue_membership_change
 from plane.db.models import Cycle, CycleIssue, Issue, FileAsset, IssueLink
 from plane.utils.grouper import (
     issue_group_values,
@@ -294,6 +295,10 @@ class CycleIssueViewSet(BaseViewSet):
             notification=True,
             origin=base_host(request=request, is_app=True),
         )
+        # Webhook so downstream consumers (NEXUS graph sync) see the membership change.
+        notify_issue_membership_change(
+            issues, "cycle", slug, str(request.user.id), base_host(request=request, is_app=True)
+        )
         return Response({"message": "success"}, status=status.HTTP_201_CREATED)
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
@@ -321,4 +326,7 @@ class CycleIssueViewSet(BaseViewSet):
             origin=base_host(request=request, is_app=True),
         )
         cycle_issue.delete()
+        notify_issue_membership_change(
+            [issue_id], "cycle", slug, str(request.user.id), base_host(request=request, is_app=True)
+        )
         return Response(status=status.HTTP_204_NO_CONTENT)
