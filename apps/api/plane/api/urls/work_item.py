@@ -20,6 +20,7 @@ from plane.api.views import (
 )
 from plane.api.views.compat import (
     IssueDetailIdentifierV1Endpoint,
+    IssueLinkV1ViewSet,
     IssueRelationV1ViewSet,
     IssueV1ViewSet,
     ModuleIssueV1ViewSet,
@@ -57,13 +58,18 @@ old_url_patterns = [
     ),
     path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/issue-relation/",
-        IssueRelationV1ViewSet.as_view({"get": "list"}),
+        IssueRelationV1ViewSet.as_view({"get": "list", "post": "create"}),
         name="issue-relation",
     ),
     path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/sub-issues/",
-        SubIssuesV1Endpoint.as_view(http_method_names=["get"]),
+        SubIssuesV1Endpoint.as_view(http_method_names=["get", "post"]),
         name="sub-issues",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/issue-links/",
+        IssueLinkV1ViewSet.as_view({"post": "create"}),
+        name="issue-links",
     ),
     path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/links/",

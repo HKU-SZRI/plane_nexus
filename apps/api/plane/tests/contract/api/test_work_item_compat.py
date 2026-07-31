@@ -5,9 +5,16 @@
 from unittest.mock import patch
 
 import pytest
+from django.urls import resolve
 from rest_framework import status
 from rest_framework.test import APIClient
 
+from plane.api.middleware.api_authentication import APIKeyAuthentication
+from plane.api.views.compat import (
+    IssueLinkV1ViewSet,
+    IssueRelationV1ViewSet,
+    SubIssuesV1Endpoint,
+)
 from plane.db.models import Issue, Project, ProjectMember
 
 
@@ -64,6 +71,31 @@ def assert_matching_get_responses(api_key_client, create_user, app_url, v1_url, 
 @pytest.mark.contract
 @pytest.mark.django_db
 class TestWorkItemCompatResponses:
+    @pytest.mark.parametrize(
+        ("suffix", "view_class"),
+        [
+            ("sub-issues", SubIssuesV1Endpoint),
+            ("issue-relation", IssueRelationV1ViewSet),
+            ("issue-links", IssueLinkV1ViewSet),
+        ],
+    )
+    def test_issue_compat_post_routes_use_api_key_authentication(
+        self, project, issue, suffix, view_class
+    ):
+        path = (
+            f"/api/v1/workspaces/{project.workspace.slug}/projects/{project.id}/"
+            f"issues/{issue.id}/{suffix}/"
+        )
+        match = resolve(path)
+        resolved_view_class = getattr(match.func, "cls", getattr(match.func, "view_class", None))
+
+        assert resolved_view_class is view_class
+        if hasattr(match.func, "actions"):
+            assert match.func.actions["post"] == "create"
+        else:
+            assert "post" in match.func.view_initkwargs["http_method_names"]
+        assert view_class.authentication_classes == [APIKeyAuthentication]
+
     def test_description_versions_response_matches_app_api(
         self, api_key_client, create_user, workspace, project, issue
     ):

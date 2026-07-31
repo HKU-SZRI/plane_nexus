@@ -26,6 +26,7 @@ from plane.app.views.cycle.base import CycleDateCheckEndpoint as _CycleDateCheck
 from plane.app.views.cycle.base import CycleProgressEndpoint as _CycleProgressEndpoint
 from plane.app.views.issue.base import IssueDetailIdentifierEndpoint as _IssueDetailIdentifierEndpoint
 from plane.app.views.issue.base import IssueViewSet as _IssueViewSet
+from plane.app.views.issue.link import IssueLinkViewSet as _IssueLinkViewSet
 from plane.app.views.issue.relation import IssueRelationViewSet as _IssueRelationViewSet
 from plane.app.views.issue.sub_issue import SubIssuesEndpoint as _SubIssuesEndpoint
 from plane.app.views.issue.version import WorkItemDescriptionVersionEndpoint as _WorkItemDescriptionVersionEndpoint
@@ -173,6 +174,10 @@ class WorkItemDescriptionVersionV1Endpoint(_WorkItemDescriptionVersionEndpoint):
 
 
 class IssueRelationV1ViewSet(_IssueRelationViewSet):
+    authentication_classes = [APIKeyAuthentication]
+
+
+class IssueLinkV1ViewSet(_IssueLinkViewSet):
     authentication_classes = [APIKeyAuthentication]
 
 
