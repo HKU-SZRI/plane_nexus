@@ -21,6 +21,7 @@ from plane.api.views import (
 from plane.api.views.compat import (
     IssueDetailIdentifierV1Endpoint,
     IssueLinkV1ViewSet,
+    IssueReactionV1ViewSet,
     IssueRelationV1ViewSet,
     IssueV1ViewSet,
     ModuleIssueV1ViewSet,
@@ -70,6 +71,16 @@ old_url_patterns = [
         "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/issue-links/",
         IssueLinkV1ViewSet.as_view({"post": "create"}),
         name="issue-links",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/reactions/",
+        IssueReactionV1ViewSet.as_view({"get": "list", "post": "create"}),
+        name="issue-reactions",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/reactions/<str:reaction_code>/",
+        IssueReactionV1ViewSet.as_view({"delete": "destroy"}),
+        name="issue-reaction-detail",
     ),
     path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/links/",
@@ -194,6 +205,16 @@ new_url_patterns = [
         "workspaces/<str:slug>/projects/<uuid:project_id>/work-items/<uuid:issue_id>/relations/",
         IssueRelationListCreateAPIEndpoint.as_view(http_method_names=["get", "post"]),
         name="work-item-relation-list",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/work-items/<uuid:issue_id>/reactions/",
+        IssueReactionV1ViewSet.as_view({"get": "list", "post": "create"}),
+        name="work-item-reactions",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/work-items/<uuid:issue_id>/reactions/<str:reaction_code>/",
+        IssueReactionV1ViewSet.as_view({"delete": "destroy"}),
+        name="work-item-reaction-detail",
     ),
 ]
 
