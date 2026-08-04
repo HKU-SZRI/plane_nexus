@@ -17,6 +17,13 @@ urlpatterns = [
         name="bulk-create-estimate-points",
     ),
     path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/estimates/<uuid:estimate_id>/",
+        BulkEstimatePointV1Endpoint.as_view(
+            {"get": "retrieve", "patch": "partial_update", "delete": "destroy"}
+        ),
+        name="estimate-detail",
+    ),
+    path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/estimates/<uuid:estimate_id>/estimate-points/",
         EstimatePointListCreateAPIEndpoint.as_view(http_method_names=["get", "post"]),
         name="estimate-point-list-create",

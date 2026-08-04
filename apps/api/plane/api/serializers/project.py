@@ -193,7 +193,7 @@ class ProjectUpdateSerializer(ProjectCreateSerializer):
         """Update a project"""
         if (
             validated_data.get("default_state", None) is not None
-            and not State.objects.filter(project=instance, id=validated_data.get("default_state")).exists()
+            and not State.objects.filter(project=instance, id=validated_data["default_state"].id).exists()
         ):
             # Check if the default state is a state in the project
             raise serializers.ValidationError("Default state should be a state in the project")

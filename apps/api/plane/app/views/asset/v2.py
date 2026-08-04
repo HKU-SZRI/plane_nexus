@@ -379,7 +379,13 @@ class WorkspaceFileAssetEndpoint(BaseAPIView):
         )
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], level="WORKSPACE")
-    def patch(self, request, slug, asset_id):
+    def patch(self, request, slug, asset_id=None):
+        asset_id = asset_id or request.data.get("asset_id")
+        if not asset_id:
+            return Response(
+                {"error": "asset_id is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         # get the asset id
         asset = FileAsset.objects.get(id=asset_id, workspace__slug=slug)
         # get the storage metadata
