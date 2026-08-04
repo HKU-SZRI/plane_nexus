@@ -18,6 +18,18 @@ urlpatterns = [
         name="workspace-file-assets",
     ),
     path(
+        "assets/v2/workspaces/<str:slug>/<uuid:asset_id>/",
+        WorkspaceFileAssetV1Endpoint.as_view(),
+        name="workspace-file-assets-detail",
+    ),
+    # Nexus's generic proxy preserves the client URL and does not append a
+    # trailing slash for non-GET requests, so accept its PATCH form as well.
+    path(
+        "assets/v2/workspaces/<str:slug>/<uuid:asset_id>",
+        WorkspaceFileAssetV1Endpoint.as_view(),
+        name="workspace-file-assets-detail-no-slash",
+    ),
+    path(
         "assets/user-assets/",
         UserAssetEndpoint.as_view(http_method_names=["post"]),
         name="user-assets",
