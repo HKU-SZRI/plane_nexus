@@ -4,6 +4,7 @@
 
 from .asset import urlpatterns as asset_patterns
 from .cycle import urlpatterns as cycle_patterns
+from .estimate import urlpatterns as estimate_patterns
 from .intake import urlpatterns as intake_patterns
 from .label import urlpatterns as label_patterns
 from .member import urlpatterns as member_patterns
@@ -23,6 +24,7 @@ from .page import urlpatterns as page_patterns
 urlpatterns = [
     *asset_patterns,
     *cycle_patterns,
+    *estimate_patterns,
     *intake_patterns,
     *label_patterns,
     *member_patterns,
@@ -39,4 +41,3 @@ urlpatterns = [
     *view_patterns,
     *page_patterns,
 ]
-

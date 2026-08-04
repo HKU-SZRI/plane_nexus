@@ -9,9 +9,14 @@ from plane.api.views import (
     UserServerAssetEndpoint,
     GenericAssetEndpoint,
 )
-from plane.api.views.compat import ProjectAssetV1Endpoint
+from plane.api.views.compat import ProjectAssetV1Endpoint, WorkspaceFileAssetV1Endpoint
 
 urlpatterns = [
+    path(
+        "assets/v2/workspaces/<str:slug>/",
+        WorkspaceFileAssetV1Endpoint.as_view(),
+        name="workspace-file-assets",
+    ),
     path(
         "assets/user-assets/",
         UserAssetEndpoint.as_view(http_method_names=["post"]),

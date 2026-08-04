@@ -4,8 +4,8 @@
 
 from django.urls import path
 
+from plane.api.views.compat import BulkEstimatePointV1Endpoint
 from plane.api.views.estimate import (
-    ProjectEstimateAPIEndpoint,
     EstimatePointListCreateAPIEndpoint,
     EstimatePointDetailAPIEndpoint,
 )
@@ -13,8 +13,8 @@ from plane.api.views.estimate import (
 urlpatterns = [
     path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/estimates/",
-        ProjectEstimateAPIEndpoint.as_view(http_method_names=["get", "post", "patch", "delete"]),
-        name="project-estimate",
+        BulkEstimatePointV1Endpoint.as_view({"get": "list", "post": "create"}),
+        name="bulk-create-estimate-points",
     ),
     path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/estimates/<uuid:estimate_id>/estimate-points/",

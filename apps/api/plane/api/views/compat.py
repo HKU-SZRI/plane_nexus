@@ -20,10 +20,12 @@ from rest_framework.response import Response
 
 from plane.api.middleware.api_authentication import APIKeyAuthentication
 from plane.api.views.issue import IssueSearchEndpoint as _WorkItemSearchEndpoint
+from plane.app.views.asset.v2 import WorkspaceFileAssetEndpoint as _WorkspaceFileAssetEndpoint
 from plane.app.views.asset.v2 import ProjectAssetEndpoint as _ProjectAssetEndpoint
 from plane.app.views.cycle.base import CycleViewSet as _CycleViewSet
 from plane.app.views.cycle.base import CycleDateCheckEndpoint as _CycleDateCheckEndpoint
 from plane.app.views.cycle.base import CycleProgressEndpoint as _CycleProgressEndpoint
+from plane.app.views.estimate.base import BulkEstimatePointEndpoint as _BulkEstimatePointEndpoint
 from plane.app.views.issue.base import IssueDetailIdentifierEndpoint as _IssueDetailIdentifierEndpoint
 from plane.app.views.issue.base import IssueViewSet as _IssueViewSet
 from plane.app.views.issue.link import IssueLinkViewSet as _IssueLinkViewSet
@@ -35,7 +37,9 @@ from plane.app.views.module.base import ModuleViewSet as _ModuleViewSet
 from plane.app.views.module.issue import ModuleIssueViewSet as _ModuleIssueViewSet
 from plane.app.views.page.base import PagesDescriptionViewSet as _PagesDescriptionViewSet
 from plane.app.views.page.base import PageViewSet as _PageViewSet
+from plane.app.views.project.base import ProjectIdentifierEndpoint as _ProjectIdentifierEndpoint
 from plane.app.views.search.issue import IssueSearchEndpoint as _IssueSearchEndpoint
+from plane.app.views.state.base import StateViewSet as _StateViewSet
 from plane.app.views.view.base import IssueViewViewSet as _IssueViewViewSet
 from plane.app.views.workspace.favorite import WorkspaceFavoriteEndpoint as _WorkspaceFavoriteEndpoint
 from plane.db.models import Issue, Label
@@ -167,6 +171,22 @@ class PageDescriptionV1ViewSet(_PagesDescriptionViewSet):
 
 
 class ProjectAssetV1Endpoint(_ProjectAssetEndpoint):
+    authentication_classes = [APIKeyAuthentication]
+
+
+class WorkspaceFileAssetV1Endpoint(_WorkspaceFileAssetEndpoint):
+    authentication_classes = [APIKeyAuthentication]
+
+
+class ProjectIdentifierV1Endpoint(_ProjectIdentifierEndpoint):
+    authentication_classes = [APIKeyAuthentication]
+
+
+class StateV1ViewSet(_StateViewSet):
+    authentication_classes = [APIKeyAuthentication]
+
+
+class BulkEstimatePointV1Endpoint(_BulkEstimatePointEndpoint):
     authentication_classes = [APIKeyAuthentication]
 
 

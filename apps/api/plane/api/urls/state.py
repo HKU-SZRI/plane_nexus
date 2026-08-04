@@ -8,6 +8,7 @@ from plane.api.views import (
     StateListCreateAPIEndpoint,
     StateDetailAPIEndpoint,
 )
+from plane.api.views.compat import StateV1ViewSet
 
 urlpatterns = [
     path(
@@ -19,5 +20,10 @@ urlpatterns = [
         "workspaces/<str:slug>/projects/<uuid:project_id>/states/<uuid:state_id>/",
         StateDetailAPIEndpoint.as_view(http_method_names=["get", "patch", "delete"]),
         name="states",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/states/<uuid:pk>/mark-default/",
+        StateV1ViewSet.as_view({"post": "mark_as_default"}),
+        name="project-state-mark-default",
     ),
 ]
