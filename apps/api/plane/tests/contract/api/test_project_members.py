@@ -3,9 +3,10 @@
 # See the LICENSE file for details.
 
 import pytest
+from django.utils import timezone
 from rest_framework import status
 
-from plane.db.models import Issue, Project, ProjectMember, State, StateGroup
+from plane.db.models import Issue, IssueAssignee, Project, ProjectMember, State, StateGroup
 
 
 @pytest.mark.contract
@@ -44,6 +45,20 @@ def test_project_members_include_workload_counts(api_key_client, create_user, wo
             created_by=create_user,
         )
         issue.assignees.add(create_user)
+
+    removed_assignment_issue = Issue.objects.create(
+        name="Removed assignment issue",
+        project=project,
+        workspace=workspace,
+        state=states[StateGroup.STARTED],
+        sequence_id=5,
+        created_by=create_user,
+    )
+    removed_assignment_issue.assignees.add(create_user)
+    IssueAssignee.objects.filter(
+        issue=removed_assignment_issue,
+        assignee=create_user,
+    ).update(deleted_at=timezone.now())
 
     response = api_key_client.get(
         f"/api/v1/workspaces/{workspace.slug}/projects/{project.id}/members/"

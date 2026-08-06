@@ -259,24 +259,26 @@ class ProjectMemberListCreateAPIEndpoint(BaseAPIView):
             .select_related("member")
             .annotate(
                 started_issues=Count(
-                    "member__assignee",
+                    "member__issue_assignee__issue_id",
                     filter=Q(
-                        member__assignee__project_id=project_id,
-                        member__assignee__state__group=StateGroup.STARTED,
-                        member__assignee__deleted_at__isnull=True,
-                        member__assignee__archived_at__isnull=True,
-                        member__assignee__is_draft=False,
+                        member__issue_assignee__deleted_at__isnull=True,
+                        member__issue_assignee__issue__project_id=project_id,
+                        member__issue_assignee__issue__state__group=StateGroup.STARTED,
+                        member__issue_assignee__issue__deleted_at__isnull=True,
+                        member__issue_assignee__issue__archived_at__isnull=True,
+                        member__issue_assignee__issue__is_draft=False,
                     ),
                     distinct=True,
                 ),
                 unstarted_issues=Count(
-                    "member__assignee",
+                    "member__issue_assignee__issue_id",
                     filter=Q(
-                        member__assignee__project_id=project_id,
-                        member__assignee__state__group__in=[StateGroup.BACKLOG, StateGroup.UNSTARTED],
-                        member__assignee__deleted_at__isnull=True,
-                        member__assignee__archived_at__isnull=True,
-                        member__assignee__is_draft=False,
+                        member__issue_assignee__deleted_at__isnull=True,
+                        member__issue_assignee__issue__project_id=project_id,
+                        member__issue_assignee__issue__state__group__in=[StateGroup.BACKLOG, StateGroup.UNSTARTED],
+                        member__issue_assignee__issue__deleted_at__isnull=True,
+                        member__issue_assignee__issue__archived_at__isnull=True,
+                        member__issue_assignee__issue__is_draft=False,
                     ),
                     distinct=True,
                 ),
