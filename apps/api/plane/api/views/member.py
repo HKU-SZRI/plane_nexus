@@ -20,7 +20,7 @@ from drf_spectacular.utils import (
 # Module imports
 from .base import BaseAPIView
 from plane.api.serializers import UserLiteSerializer, ProjectMemberSerializer
-from plane.db.models import User, Workspace, WorkspaceMember, ProjectMember, Project
+from plane.db.models import Project, ProjectMember, StateGroup, User, Workspace, WorkspaceMember
 from plane.bgtasks.webhook_task import model_activity, webhook_activity
 from plane.utils.host import base_host
 from plane.utils.permissions import ProjectMemberPermission, WorkSpaceAdminPermission, ProjectAdminPermission
@@ -257,6 +257,30 @@ class ProjectMemberListCreateAPIEndpoint(BaseAPIView):
             ProjectMember.objects
             .filter(project_id=project_id, workspace__slug=slug, is_active=True)
             .select_related("member")
+            .annotate(
+                started_issues=Count(
+                    "member__assignee",
+                    filter=Q(
+                        member__assignee__project_id=project_id,
+                        member__assignee__state__group=StateGroup.STARTED,
+                        member__assignee__deleted_at__isnull=True,
+                        member__assignee__archived_at__isnull=True,
+                        member__assignee__is_draft=False,
+                    ),
+                    distinct=True,
+                ),
+                unstarted_issues=Count(
+                    "member__assignee",
+                    filter=Q(
+                        member__assignee__project_id=project_id,
+                        member__assignee__state__group__in=[StateGroup.BACKLOG, StateGroup.UNSTARTED],
+                        member__assignee__deleted_at__isnull=True,
+                        member__assignee__archived_at__isnull=True,
+                        member__assignee__is_draft=False,
+                    ),
+                    distinct=True,
+                ),
+            )
         )
 
         # Build response: user fields + record id + role
@@ -265,6 +289,8 @@ class ProjectMemberListCreateAPIEndpoint(BaseAPIView):
             user_data = UserLiteSerializer(pm.member).data
             user_data["member_id"] = str(pm.id)
             user_data["role"] = pm.role
+            user_data["started_issues"] = pm.started_issues
+            user_data["unstarted_issues"] = pm.unstarted_issues
             result.append(user_data)
 
         return Response(result, status=status.HTTP_200_OK)
