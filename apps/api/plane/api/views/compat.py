@@ -30,6 +30,7 @@ from plane.app.views.estimate.base import BulkEstimatePointEndpoint as _BulkEsti
 from plane.app.views.issue.base import IssueDetailIdentifierEndpoint as _IssueDetailIdentifierEndpoint
 from plane.app.views.issue.base import ProjectUserDisplayPropertyEndpoint as _ProjectUserDisplayPropertyEndpoint
 from plane.app.views.issue.base import IssueViewSet as _IssueViewSet
+from plane.app.views.issue.attachment import IssueAttachmentV2Endpoint as _IssueAttachmentV2Endpoint
 from plane.app.views.issue.link import IssueLinkViewSet as _IssueLinkViewSet
 from plane.app.views.issue.reaction import IssueReactionViewSet as _IssueReactionViewSet
 from plane.app.views.issue.relation import IssueRelationViewSet as _IssueRelationViewSet
@@ -177,6 +178,10 @@ class ProjectAssetV1Endpoint(_ProjectAssetEndpoint):
 
 
 class ProjectBulkAssetV1Endpoint(_ProjectBulkAssetEndpoint):
+    authentication_classes = [APIKeyAuthentication]
+
+
+class IssueAttachmentV2V1Endpoint(_IssueAttachmentV2Endpoint):
     authentication_classes = [APIKeyAuthentication]
 
 

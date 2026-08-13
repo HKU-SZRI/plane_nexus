@@ -10,6 +10,7 @@ from plane.api.views import (
     GenericAssetEndpoint,
 )
 from plane.api.views.compat import (
+    IssueAttachmentV2V1Endpoint,
     ProjectAssetV1Endpoint,
     ProjectBulkAssetV1Endpoint,
     WorkspaceFileAssetV1Endpoint,
@@ -77,5 +78,15 @@ urlpatterns = [
         "assets/v2/workspaces/<str:slug>/projects/<uuid:project_id>/<uuid:entity_id>/bulk/",
         ProjectBulkAssetV1Endpoint.as_view(),
         name="project-bulk-asset",
+    ),
+    path(
+        "assets/v2/workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/attachments/",
+        IssueAttachmentV2V1Endpoint.as_view(),
+        name="issue-attachment-v2",
+    ),
+    path(
+        "assets/v2/workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/attachments/<uuid:pk>/",
+        IssueAttachmentV2V1Endpoint.as_view(),
+        name="issue-attachment-v2-detail",
     ),
 ]

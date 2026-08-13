@@ -11,6 +11,7 @@ from rest_framework.test import APIClient
 
 from plane.api.middleware.api_authentication import APIKeyAuthentication
 from plane.api.views.compat import (
+    IssueAttachmentV2V1Endpoint,
     IssueLinkV1ViewSet,
     IssueRelationV1ViewSet,
     ProjectBulkAssetV1Endpoint,
@@ -119,6 +120,12 @@ class TestWorkItemCompatResponses:
                 ProjectBulkAssetV1Endpoint,
             ),
             (
+                "assets/v2/workspaces/{workspace_slug}/projects/{project_id}/issues/{issue_id}/"
+                "attachments/{entity_id}/",
+                "get",
+                IssueAttachmentV2V1Endpoint,
+            ),
+            (
                 "workspaces/{workspace_slug}/projects/{project_id}/user-properties/",
                 None,
                 ProjectUserDisplayPropertyV1Endpoint,
@@ -132,6 +139,7 @@ class TestWorkItemCompatResponses:
             workspace_slug=workspace.slug,
             project_id=project.id,
             entity_id=issue.id,
+            issue_id=issue.id,
         )
         match = resolve(f"/api/v1/{resolved_path}")
         resolved_view_class = getattr(match.func, "cls", getattr(match.func, "view_class", None))
@@ -264,3 +272,33 @@ class TestWorkItemCompatResponses:
         assert asset.comment_id == comment.id
         assert asset.issue_id is None
         assert asset.entity_type == FileAsset.EntityTypeContext.COMMENT_DESCRIPTION
+
+    @patch("plane.app.views.issue.attachment.S3Storage")
+    def test_issue_attachment_v2_download_response_matches_app_api(
+        self, mock_storage, api_key_client, create_user, workspace, project, issue
+    ):
+        mock_storage.return_value.generate_presigned_url.return_value = "http://storage.example/download"
+        asset = FileAsset.objects.create(
+            attributes={"name": "report.pdf", "type": "application/pdf", "size": 128},
+            asset=f"{workspace.id}/report.pdf",
+            size=128,
+            workspace=workspace,
+            project=project,
+            issue=issue,
+            created_by=create_user,
+            entity_type=FileAsset.EntityTypeContext.ISSUE_ATTACHMENT,
+            is_uploaded=True,
+        )
+        path = (
+            f"assets/v2/workspaces/{workspace.slug}/projects/{project.id}/"
+            f"issues/{issue.id}/attachments/{asset.id}/"
+        )
+        app_client = APIClient()
+        app_client.force_authenticate(user=create_user)
+
+        app_response = app_client.get(f"/api/{path}")
+        v1_response = api_key_client.get(f"/api/v1/{path}")
+
+        assert app_response.status_code == status.HTTP_302_FOUND
+        assert v1_response.status_code == status.HTTP_302_FOUND
+        assert v1_response["Location"] == app_response["Location"]
