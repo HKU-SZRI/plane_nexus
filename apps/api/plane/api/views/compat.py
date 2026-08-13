@@ -22,11 +22,13 @@ from plane.api.middleware.api_authentication import APIKeyAuthentication
 from plane.api.views.issue import IssueSearchEndpoint as _WorkItemSearchEndpoint
 from plane.app.views.asset.v2 import WorkspaceFileAssetEndpoint as _WorkspaceFileAssetEndpoint
 from plane.app.views.asset.v2 import ProjectAssetEndpoint as _ProjectAssetEndpoint
+from plane.app.views.asset.v2 import ProjectBulkAssetEndpoint as _ProjectBulkAssetEndpoint
 from plane.app.views.cycle.base import CycleViewSet as _CycleViewSet
 from plane.app.views.cycle.base import CycleDateCheckEndpoint as _CycleDateCheckEndpoint
 from plane.app.views.cycle.base import CycleProgressEndpoint as _CycleProgressEndpoint
 from plane.app.views.estimate.base import BulkEstimatePointEndpoint as _BulkEstimatePointEndpoint
 from plane.app.views.issue.base import IssueDetailIdentifierEndpoint as _IssueDetailIdentifierEndpoint
+from plane.app.views.issue.base import ProjectUserDisplayPropertyEndpoint as _ProjectUserDisplayPropertyEndpoint
 from plane.app.views.issue.base import IssueViewSet as _IssueViewSet
 from plane.app.views.issue.link import IssueLinkViewSet as _IssueLinkViewSet
 from plane.app.views.issue.reaction import IssueReactionViewSet as _IssueReactionViewSet
@@ -174,11 +176,19 @@ class ProjectAssetV1Endpoint(_ProjectAssetEndpoint):
     authentication_classes = [APIKeyAuthentication]
 
 
+class ProjectBulkAssetV1Endpoint(_ProjectBulkAssetEndpoint):
+    authentication_classes = [APIKeyAuthentication]
+
+
 class WorkspaceFileAssetV1Endpoint(_WorkspaceFileAssetEndpoint):
     authentication_classes = [APIKeyAuthentication]
 
 
 class ProjectIdentifierV1Endpoint(_ProjectIdentifierEndpoint):
+    authentication_classes = [APIKeyAuthentication]
+
+
+class ProjectUserDisplayPropertyV1Endpoint(_ProjectUserDisplayPropertyEndpoint):
     authentication_classes = [APIKeyAuthentication]
 
 

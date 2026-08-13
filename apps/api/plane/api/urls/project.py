@@ -10,7 +10,7 @@ from plane.api.views import (
     ProjectArchiveUnarchiveAPIEndpoint,
     ProjectSummaryAPIEndpoint,
 )
-from plane.api.views.compat import ProjectIdentifierV1Endpoint
+from plane.api.views.compat import ProjectIdentifierV1Endpoint, ProjectUserDisplayPropertyV1Endpoint
 
 urlpatterns = [
     path(
@@ -37,5 +37,10 @@ urlpatterns = [
         "workspaces/<str:slug>/projects/<uuid:project_id>/summary/",
         ProjectSummaryAPIEndpoint.as_view(http_method_names=["get"]),
         name="project-summary",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/user-properties/",
+        ProjectUserDisplayPropertyV1Endpoint.as_view(),
+        name="project-user-properties",
     ),
 ]

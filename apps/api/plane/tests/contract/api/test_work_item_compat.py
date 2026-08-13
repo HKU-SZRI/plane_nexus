@@ -13,9 +13,11 @@ from plane.api.middleware.api_authentication import APIKeyAuthentication
 from plane.api.views.compat import (
     IssueLinkV1ViewSet,
     IssueRelationV1ViewSet,
+    ProjectBulkAssetV1Endpoint,
+    ProjectUserDisplayPropertyV1Endpoint,
     SubIssuesV1Endpoint,
 )
-from plane.db.models import Issue, Project, ProjectMember
+from plane.db.models import FileAsset, Issue, IssueComment, Project, ProjectMember
 
 
 @pytest.fixture
@@ -68,6 +70,18 @@ def assert_matching_get_responses(api_key_client, create_user, app_url, v1_url, 
     assert v1_response.json() == app_response.json()
 
 
+def assert_matching_patch_responses(api_key_client, create_user, app_url, v1_url, data):
+    app_client = APIClient()
+    app_client.force_authenticate(user=create_user)
+
+    app_response = app_client.patch(app_url, data, format="json")
+    v1_response = api_key_client.patch(v1_url, data, format="json")
+
+    assert app_response.status_code == status.HTTP_200_OK
+    assert v1_response.status_code == status.HTTP_200_OK
+    assert v1_response.json() == app_response.json()
+
+
 @pytest.mark.contract
 @pytest.mark.django_db
 class TestWorkItemCompatResponses:
@@ -94,6 +108,37 @@ class TestWorkItemCompatResponses:
             assert match.func.actions["post"] == "create"
         else:
             assert "post" in match.func.view_initkwargs["http_method_names"]
+        assert view_class.authentication_classes == [APIKeyAuthentication]
+
+    @pytest.mark.parametrize(
+        ("path", "method", "view_class"),
+        [
+            (
+                "assets/v2/workspaces/{workspace_slug}/projects/{project_id}/{entity_id}/bulk/",
+                "post",
+                ProjectBulkAssetV1Endpoint,
+            ),
+            (
+                "workspaces/{workspace_slug}/projects/{project_id}/user-properties/",
+                None,
+                ProjectUserDisplayPropertyV1Endpoint,
+            ),
+        ],
+    )
+    def test_project_compat_routes_use_api_key_authentication(
+        self, workspace, project, issue, path, method, view_class
+    ):
+        resolved_path = path.format(
+            workspace_slug=workspace.slug,
+            project_id=project.id,
+            entity_id=issue.id,
+        )
+        match = resolve(f"/api/v1/{resolved_path}")
+        resolved_view_class = getattr(match.func, "cls", getattr(match.func, "view_class", None))
+
+        assert resolved_view_class is view_class
+        if method:
+            assert method in match.func.view_initkwargs["http_method_names"]
         assert view_class.authentication_classes == [APIKeyAuthentication]
 
     def test_description_versions_response_matches_app_api(
@@ -159,3 +204,63 @@ class TestWorkItemCompatResponses:
             "issue_link",
             "parent",
         }.issubset(response.json())
+
+    def test_project_user_properties_response_matches_app_api(
+        self, api_key_client, create_user, workspace, project
+    ):
+        path = f"workspaces/{workspace.slug}/projects/{project.id}/user-properties/"
+
+        assert_matching_get_responses(
+            api_key_client,
+            create_user,
+            f"/api/{path}",
+            f"/api/v1/{path}",
+        )
+        assert_matching_patch_responses(
+            api_key_client,
+            create_user,
+            f"/api/{path}",
+            f"/api/v1/{path}",
+            {
+                "display_properties": {
+                    "priority": True,
+                    "state": True,
+                    "assignee": True,
+                }
+            },
+        )
+
+    def test_project_bulk_asset_binds_comment_description_through_api_key_compat(
+        self, api_key_client, workspace, project, issue, create_user
+    ):
+        comment = IssueComment.objects.create(
+            comment_html="<p>Asset comment</p>",
+            issue=issue,
+            workspace=workspace,
+            project=project,
+            actor=create_user,
+            created_by=create_user,
+            updated_by=create_user,
+        )
+        asset = FileAsset.objects.create(
+            attributes={"name": "screenshot.png", "type": "image/png", "size": 128},
+            asset=f"{workspace.id}/screenshot.png",
+            size=128,
+            workspace=workspace,
+            project=project,
+            created_by=create_user,
+            entity_type=FileAsset.EntityTypeContext.COMMENT_DESCRIPTION,
+            is_uploaded=True,
+        )
+
+        response = api_key_client.post(
+            f"/api/v1/assets/v2/workspaces/{workspace.slug}/projects/{project.id}/{comment.id}/bulk/",
+            {"asset_ids": [str(asset.id)]},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        asset.refresh_from_db()
+        assert asset.comment_id == comment.id
+        assert asset.issue_id is None
+        assert asset.entity_type == FileAsset.EntityTypeContext.COMMENT_DESCRIPTION

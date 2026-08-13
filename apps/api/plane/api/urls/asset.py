@@ -9,7 +9,11 @@ from plane.api.views import (
     UserServerAssetEndpoint,
     GenericAssetEndpoint,
 )
-from plane.api.views.compat import ProjectAssetV1Endpoint, WorkspaceFileAssetV1Endpoint
+from plane.api.views.compat import (
+    ProjectAssetV1Endpoint,
+    ProjectBulkAssetV1Endpoint,
+    WorkspaceFileAssetV1Endpoint,
+)
 
 urlpatterns = [
     path(
@@ -68,5 +72,10 @@ urlpatterns = [
         "assets/v2/workspaces/<str:slug>/projects/<uuid:project_id>/<uuid:pk>/",
         ProjectAssetV1Endpoint.as_view(),
         name="project-asset-detail",
+    ),
+    path(
+        "assets/v2/workspaces/<str:slug>/projects/<uuid:project_id>/<uuid:entity_id>/bulk/",
+        ProjectBulkAssetV1Endpoint.as_view(),
+        name="project-bulk-asset",
     ),
 ]
