@@ -24,12 +24,14 @@ export interface IEditorAssetStore {
     blockId,
     data,
     file,
+    onUploadProgress,
     projectId,
     workspaceSlug,
   }: {
     blockId: string;
     data: TFileEntityInfo;
     file: File;
+    onUploadProgress?: (progress: number) => void;
     projectId?: string;
     workspaceSlug: string;
   }) => Promise<TFileSignedURLResponse>;
@@ -94,8 +96,12 @@ export class EditorAssetStore implements IEditorAssetStore {
   }, 16);
 
   uploadEditorAsset: IEditorAssetStore["uploadEditorAsset"] = async (args) => {
-    const { blockId, data, file, projectId, workspaceSlug } = args;
+    const { blockId, data, file, onUploadProgress, projectId, workspaceSlug } = args;
     const tempId = uuidv4();
+    const handleUploadProgress = (progress: number) => {
+      this.debouncedUpdateProgress(blockId, progress);
+      onUploadProgress?.(progress);
+    };
 
     try {
       // update attachment upload status
@@ -116,14 +122,14 @@ export class EditorAssetStore implements IEditorAssetStore {
           file,
           (progressEvent) => {
             const progressPercentage = Math.round((progressEvent.progress ?? 0) * 100);
-            this.debouncedUpdateProgress(blockId, progressPercentage);
+            handleUploadProgress(progressPercentage);
           }
         );
         return response;
       } else {
         const response = await this.fileService.uploadWorkspaceAsset(workspaceSlug, data, file, (progressEvent) => {
           const progressPercentage = Math.round((progressEvent.progress ?? 0) * 100);
-          this.debouncedUpdateProgress(blockId, progressPercentage);
+          handleUploadProgress(progressPercentage);
         });
         return response;
       }

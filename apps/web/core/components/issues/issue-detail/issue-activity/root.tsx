@@ -40,7 +40,12 @@ export type TActivityOperations = {
   createComment: (data: Partial<TIssueComment>) => Promise<TIssueComment>;
   updateComment: (commentId: string, data: Partial<TIssueComment>) => Promise<void>;
   removeComment: (commentId: string) => Promise<void>;
-  uploadCommentAsset: (blockId: string, file: File, commentId?: string) => Promise<TFileSignedURLResponse>;
+  uploadCommentAsset: (
+    blockId: string,
+    file: File,
+    commentId?: string,
+    onUploadProgress?: (progress: number) => void
+  ) => Promise<TFileSignedURLResponse>;
 };
 
 export const IssueActivity = observer(function IssueActivity(props: TIssueActivity) {

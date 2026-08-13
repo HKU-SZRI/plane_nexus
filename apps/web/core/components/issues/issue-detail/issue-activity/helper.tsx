@@ -123,7 +123,7 @@ export const useWorkItemCommentOperations = (
           });
         }
       },
-      uploadCommentAsset: async (blockId, file, commentId) => {
+      uploadCommentAsset: async (blockId, file, commentId, onUploadProgress) => {
         try {
           if (!workspaceSlug || !projectId) throw new Error("Missing fields");
           const res = await uploadEditorAsset({
@@ -133,6 +133,7 @@ export const useWorkItemCommentOperations = (
               entity_type: EFileAssetType.COMMENT_DESCRIPTION,
             },
             file,
+            onUploadProgress,
             projectId,
             workspaceSlug,
           });

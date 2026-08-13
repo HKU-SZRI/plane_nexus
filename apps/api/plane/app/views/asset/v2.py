@@ -517,7 +517,7 @@ class ProjectAssetEndpoint(BaseAPIView):
         if entity_type == FileAsset.EntityTypeContext.PAGE_DESCRIPTION:
             return {"page_id": entity_id}
 
-        if entity_type == FileAsset.EntityTypeContext.COMMENT_DESCRIPTION:
+        if entity_type == FileAsset.EntityTypeContext.COMMENT_DESCRIPTION and entity_id:
             return {"comment_id": entity_id}
 
         if entity_type == FileAsset.EntityTypeContext.DRAFT_ISSUE_DESCRIPTION:
@@ -539,18 +539,27 @@ class ProjectAssetEndpoint(BaseAPIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Check if the file type is allowed
-        allowed_types = [
+        allowed_image_types = [
             "image/jpeg",
             "image/png",
             "image/webp",
             "image/jpg",
             "image/gif",
         ]
-        if type not in allowed_types:
+
+        if entity_type != FileAsset.EntityTypeContext.COMMENT_DESCRIPTION and type not in allowed_image_types:
             return Response(
                 {
                     "error": "Invalid file type. Only JPEG, PNG, WebP, JPG and GIF files are allowed.",
+                    "status": False,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if entity_type == FileAsset.EntityTypeContext.COMMENT_DESCRIPTION and size > settings.FILE_SIZE_LIMIT:
+            return Response(
+                {
+                    "error": f"File size exceeds the maximum allowed size of {settings.FILE_SIZE_LIMIT} bytes.",
                     "status": False,
                 },
                 status=status.HTTP_400_BAD_REQUEST,

@@ -18,6 +18,8 @@ import { LiteTextEditor } from "@/components/editor/lite-text";
 import { useWorkspace } from "@/hooks/store/use-workspace";
 // services
 import { FileService } from "@/services/file.service";
+// local imports
+import { getCommentAttachmentBlockId, insertCommentAttachmentLink } from "./helpers";
 
 type TCommentCreate = {
   entityId: string;
@@ -64,14 +66,15 @@ export const CommentCreate = observer(function CommentCreate(props: TCommentCrea
   const onSubmit = async (formData: Partial<TIssueComment>) => {
     try {
       const comment = await activityOperations.createComment(formData);
-      if (comment?.id) onSubmitCallback?.(comment.id);
-      if (uploadedAssetIds.length > 0) {
+      const commentId = comment?.id;
+      if (commentId) onSubmitCallback?.(commentId);
+      if (uploadedAssetIds.length > 0 && commentId) {
         if (projectId) {
-          await fileService.updateBulkProjectAssetsUploadStatus(workspaceSlug, projectId.toString(), entityId, {
+          await fileService.updateBulkProjectAssetsUploadStatus(workspaceSlug, projectId.toString(), commentId, {
             asset_ids: uploadedAssetIds,
           });
         } else {
-          await fileService.updateBulkWorkspaceAssetsUploadStatus(workspaceSlug, entityId, {
+          await fileService.updateBulkWorkspaceAssetsUploadStatus(workspaceSlug, commentId, {
             asset_ids: uploadedAssetIds,
           });
         }
@@ -132,6 +135,23 @@ export const CommentCreate = observer(function CommentCreate(props: TCommentCrea
                 onChange={(comment_json, comment_html) => onChange(comment_html)}
                 accessSpecifier={accessValue ?? EIssueCommentAccessSpecifier.INTERNAL}
                 handleAccessChange={onAccessChange}
+                handleAttachmentUpload={async (file, activeEditorRef, onUploadProgress) => {
+                  const blockId = getCommentAttachmentBlockId();
+                  const { asset_id } = await activityOperations.uploadCommentAsset(
+                    blockId,
+                    file,
+                    undefined,
+                    onUploadProgress
+                  );
+                  setUploadedAssetIds((prev) => [...prev, asset_id]);
+                  insertCommentAttachmentLink({
+                    assetId: asset_id,
+                    editorRef: activeEditorRef,
+                    fileName: file.name,
+                    projectId,
+                    workspaceSlug,
+                  });
+                }}
                 isSubmitting={isSubmitting}
                 uploadFile={async (blockId, file) => {
                   const { asset_id } = await activityOperations.uploadCommentAsset(blockId, file);

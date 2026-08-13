@@ -14,6 +14,8 @@ import type { TCommentsOperations, TIssueComment } from "@plane/types";
 import { cn, isCommentEmpty } from "@plane/utils";
 // components
 import { LiteTextEditor } from "@/components/editor/lite-text";
+// local imports
+import { getCommentAttachmentBlockId, insertCommentAttachmentLink } from "../helpers";
 
 type Props = {
   activityOperations: TCommentsOperations;
@@ -95,6 +97,21 @@ export const CommentCardEditForm = observer(function CommentCardEditForm(props: 
             }
           }}
           showSubmitButton={false}
+          handleAttachmentUpload={async (file, activeEditorRef, onUploadProgress) => {
+            const { asset_id } = await activityOperations.uploadCommentAsset(
+              getCommentAttachmentBlockId(),
+              file,
+              comment.id,
+              onUploadProgress
+            );
+            insertCommentAttachmentLink({
+              assetId: asset_id,
+              editorRef: activeEditorRef,
+              fileName: file.name,
+              projectId,
+              workspaceSlug,
+            });
+          }}
           uploadFile={async (blockId, file) => {
             const { asset_id } = await activityOperations.uploadCommentAsset(blockId, file, comment.id);
             return asset_id;

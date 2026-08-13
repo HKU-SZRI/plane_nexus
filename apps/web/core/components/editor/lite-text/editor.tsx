@@ -22,6 +22,7 @@ import { useMember } from "@/hooks/store/use-member";
 import { useParseEditorContent } from "@/hooks/use-parse-editor-content";
 // plane web hooks
 import { useEditorFlagging } from "@/plane-web/hooks/use-editor-flagging";
+import { useFileSize } from "@/plane-web/hooks/use-file-size";
 // plane web service
 import { WorkspaceService } from "@/services/workspace.service";
 import { LiteToolbar } from "./lite-toolbar";
@@ -36,6 +37,11 @@ type LiteTextEditorWrapperProps = MakeOptional<
   projectId?: string;
   accessSpecifier?: EIssueCommentAccessSpecifier;
   handleAccessChange?: (accessKey: EIssueCommentAccessSpecifier) => void;
+  handleAttachmentUpload?: (
+    file: File,
+    editorRef: EditorRefApi,
+    onUploadProgress?: (progress: number) => void
+  ) => Promise<void>;
   showAccessSpecifier?: boolean;
   showSubmitButton?: boolean;
   isSubmitting?: boolean;
@@ -70,6 +76,7 @@ export const LiteTextEditor = React.forwardRef(function LiteTextEditor(
     issue_id,
     accessSpecifier,
     handleAccessChange,
+    handleAttachmentUpload,
     showAccessSpecifier = false,
     showSubmitButton = true,
     isSubmitting = false,
@@ -111,6 +118,7 @@ export const LiteTextEditor = React.forwardRef(function LiteTextEditor(
   });
   // editor config
   const { getEditorFileHandlers } = useEditorConfig();
+  const { maxFileSize } = useFileSize();
   function isMutableRefObject<T>(ref: React.ForwardedRef<T>): ref is React.MutableRefObject<T | null> {
     return !!ref && typeof ref === "object" && "current" in ref;
   }
@@ -210,9 +218,15 @@ export const LiteTextEditor = React.forwardRef(function LiteTextEditor(
               });
             }}
             handleAccessChange={handleAccessChange}
+            handleAttachmentUpload={
+              handleAttachmentUpload && editorRef
+                ? (file, onUploadProgress) => handleAttachmentUpload(file, editorRef, onUploadProgress)
+                : undefined
+            }
             handleSubmit={(e) => rest.onEnterKeyPress?.(e)}
             isCommentEmpty={isEmpty}
             isSubmitting={isSubmitting}
+            maxFileSize={maxFileSize}
             showAccessSpecifier={showAccessSpecifier}
             editorRef={editorRef}
             showSubmitButton={showSubmitButton}
