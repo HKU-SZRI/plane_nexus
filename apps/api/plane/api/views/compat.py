@@ -23,6 +23,7 @@ from plane.api.views.issue import IssueSearchEndpoint as _WorkItemSearchEndpoint
 from plane.app.views.asset.v2 import WorkspaceFileAssetEndpoint as _WorkspaceFileAssetEndpoint
 from plane.app.views.asset.v2 import ProjectAssetEndpoint as _ProjectAssetEndpoint
 from plane.app.views.asset.v2 import ProjectBulkAssetEndpoint as _ProjectBulkAssetEndpoint
+from plane.app.views.cycle.archive import CycleArchiveUnarchiveEndpoint as _CycleArchiveUnarchiveEndpoint
 from plane.app.views.cycle.base import CycleViewSet as _CycleViewSet
 from plane.app.views.cycle.base import CycleDateCheckEndpoint as _CycleDateCheckEndpoint
 from plane.app.views.cycle.base import CycleProgressEndpoint as _CycleProgressEndpoint
@@ -30,6 +31,7 @@ from plane.app.views.estimate.base import BulkEstimatePointEndpoint as _BulkEsti
 from plane.app.views.issue.base import IssueDetailIdentifierEndpoint as _IssueDetailIdentifierEndpoint
 from plane.app.views.issue.base import ProjectUserDisplayPropertyEndpoint as _ProjectUserDisplayPropertyEndpoint
 from plane.app.views.issue.base import IssueViewSet as _IssueViewSet
+from plane.app.views.issue.archive import IssueArchiveViewSet as _IssueArchiveViewSet
 from plane.app.views.issue.attachment import IssueAttachmentV2Endpoint as _IssueAttachmentV2Endpoint
 from plane.app.views.issue.link import IssueLinkViewSet as _IssueLinkViewSet
 from plane.app.views.issue.reaction import IssueReactionViewSet as _IssueReactionViewSet
@@ -37,6 +39,7 @@ from plane.app.views.issue.relation import IssueRelationViewSet as _IssueRelatio
 from plane.app.views.issue.sub_issue import SubIssuesEndpoint as _SubIssuesEndpoint
 from plane.app.views.issue.version import WorkItemDescriptionVersionEndpoint as _WorkItemDescriptionVersionEndpoint
 from plane.app.views.module.base import ModuleViewSet as _ModuleViewSet
+from plane.app.views.module.archive import ModuleArchiveUnarchiveEndpoint as _ModuleArchiveUnarchiveEndpoint
 from plane.app.views.module.issue import ModuleIssueViewSet as _ModuleIssueViewSet
 from plane.app.views.page.base import PagesDescriptionViewSet as _PagesDescriptionViewSet
 from plane.app.views.page.base import PageViewSet as _PageViewSet
@@ -46,6 +49,7 @@ from plane.app.views.state.base import StateViewSet as _StateViewSet
 from plane.app.views.view.base import IssueViewViewSet as _IssueViewViewSet
 from plane.app.views.workspace.favorite import WorkspaceFavoriteEndpoint as _WorkspaceFavoriteEndpoint
 from plane.db.models import Issue, Label
+
 
 class _PaginatedListShimMixin:
     """Wrap flat-array list responses in the public API's pagination envelope.
@@ -77,6 +81,10 @@ class _PaginatedListShimMixin:
 
 
 class CycleV1ViewSet(_PaginatedListShimMixin, _CycleViewSet):
+    authentication_classes = [APIKeyAuthentication]
+
+
+class CycleArchiveUnarchiveV1Endpoint(_CycleArchiveUnarchiveEndpoint):
     authentication_classes = [APIKeyAuthentication]
 
 
@@ -153,11 +161,19 @@ class IssueV1ViewSet(_IssueViewSet):
         return response
 
 
+class IssueArchiveV1ViewSet(_IssueArchiveViewSet):
+    authentication_classes = [APIKeyAuthentication]
+
+
 class ModuleIssueV1ViewSet(_ModuleIssueViewSet):
     authentication_classes = [APIKeyAuthentication]
 
 
 class ModuleV1ViewSet(_PaginatedListShimMixin, _ModuleViewSet):
+    authentication_classes = [APIKeyAuthentication]
+
+
+class ModuleArchiveUnarchiveV1Endpoint(_ModuleArchiveUnarchiveEndpoint):
     authentication_classes = [APIKeyAuthentication]
 
 

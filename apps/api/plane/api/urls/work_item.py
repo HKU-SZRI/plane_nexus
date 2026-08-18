@@ -5,8 +5,6 @@
 from django.urls import path
 
 from plane.api.views import (
-    IssueListCreateAPIEndpoint,
-    IssueDetailAPIEndpoint,
     IssueLinkListCreateAPIEndpoint,
     IssueLinkDetailAPIEndpoint,
     IssueCommentListCreateAPIEndpoint,
@@ -19,6 +17,7 @@ from plane.api.views import (
     IssueRelationListCreateAPIEndpoint,
 )
 from plane.api.views.compat import (
+    IssueArchiveV1ViewSet,
     IssueDetailIdentifierV1Endpoint,
     IssueLinkV1ViewSet,
     IssueReactionV1ViewSet,
@@ -51,6 +50,16 @@ old_url_patterns = [
         "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:pk>/",
         IssueV1ViewSet.as_view({"get": "retrieve", "patch": "partial_update", "delete": "destroy"}),
         name="issue",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/archived-issues/",
+        IssueArchiveV1ViewSet.as_view({"get": "list"}),
+        name="project-issue-archive",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:pk>/archive/",
+        IssueArchiveV1ViewSet.as_view({"get": "retrieve", "post": "archive", "delete": "unarchive"}),
+        name="project-issue-archive-unarchive",
     ),
     path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/modules/",

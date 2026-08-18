@@ -7,9 +7,8 @@ from django.urls import path
 from plane.api.views import (
     ModuleIssueListCreateAPIEndpoint,
     ModuleIssueDetailAPIEndpoint,
-    ModuleArchiveUnarchiveAPIEndpoint,
 )
-from plane.api.views.compat import ModuleV1ViewSet
+from plane.api.views.compat import ModuleArchiveUnarchiveV1Endpoint, ModuleV1ViewSet
 
 urlpatterns = [
     path(
@@ -33,18 +32,23 @@ urlpatterns = [
         name="module-issues-detail",
     ),
     path(
-        "workspaces/<str:slug>/projects/<uuid:project_id>/modules/<uuid:pk>/archive/",
-        ModuleArchiveUnarchiveAPIEndpoint.as_view(http_method_names=["post"]),
+        "workspaces/<str:slug>/projects/<uuid:project_id>/modules/<uuid:module_id>/archive/",
+        ModuleArchiveUnarchiveV1Endpoint.as_view(http_method_names=["post", "delete"]),
         name="module-archive",
     ),
     path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/archived-modules/",
-        ModuleArchiveUnarchiveAPIEndpoint.as_view(http_method_names=["get"]),
+        ModuleArchiveUnarchiveV1Endpoint.as_view(http_method_names=["get"]),
         name="module-archive-list",
     ),
     path(
-        "workspaces/<str:slug>/projects/<uuid:project_id>/archived-modules/<uuid:pk>/unarchive/",
-        ModuleArchiveUnarchiveAPIEndpoint.as_view(http_method_names=["delete"]),
+        "workspaces/<str:slug>/projects/<uuid:project_id>/archived-modules/<uuid:pk>/",
+        ModuleArchiveUnarchiveV1Endpoint.as_view(http_method_names=["get"]),
+        name="module-archive-detail",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/archived-modules/<uuid:module_id>/unarchive/",
+        ModuleArchiveUnarchiveV1Endpoint.as_view(http_method_names=["delete"]),
         name="module-unarchive",
     ),
 ]

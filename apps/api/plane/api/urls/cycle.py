@@ -5,14 +5,12 @@
 from django.urls import path
 
 from plane.api.views.cycle import (
-    CycleListCreateAPIEndpoint,
-    CycleDetailAPIEndpoint,
     CycleIssueListCreateAPIEndpoint,
     CycleIssueDetailAPIEndpoint,
     TransferCycleIssueAPIEndpoint,
-    CycleArchiveUnarchiveAPIEndpoint,
 )
 from plane.api.views.compat import (
+    CycleArchiveUnarchiveV1Endpoint,
     CycleV1ViewSet,
     CycleProgressV1Endpoint,
     CycleDateCheckV1Endpoint,
@@ -46,17 +44,22 @@ urlpatterns = [
     ),
     path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/cycles/<uuid:cycle_id>/archive/",
-        CycleArchiveUnarchiveAPIEndpoint.as_view(http_method_names=["post"]),
+        CycleArchiveUnarchiveV1Endpoint.as_view(http_method_names=["post", "delete"]),
         name="cycle-archive-unarchive",
     ),
     path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/archived-cycles/",
-        CycleArchiveUnarchiveAPIEndpoint.as_view(http_method_names=["get"]),
+        CycleArchiveUnarchiveV1Endpoint.as_view(http_method_names=["get"]),
+        name="cycle-archive-unarchive",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/archived-cycles/<uuid:pk>/",
+        CycleArchiveUnarchiveV1Endpoint.as_view(http_method_names=["get"]),
         name="cycle-archive-unarchive",
     ),
     path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/archived-cycles/<uuid:cycle_id>/unarchive/",
-        CycleArchiveUnarchiveAPIEndpoint.as_view(http_method_names=["delete"]),
+        CycleArchiveUnarchiveV1Endpoint.as_view(http_method_names=["delete"]),
         name="cycle-archive-unarchive",
     ),
     path(
