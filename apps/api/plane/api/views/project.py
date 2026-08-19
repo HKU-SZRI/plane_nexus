@@ -36,6 +36,7 @@ from plane.db.models import (
     StateGroup,
     IntakeIssue,
     ProjectPage,
+    WorkspaceMember,
 )
 from plane.bgtasks.webhook_task import model_activity, webhook_activity
 from plane.utils.exception_logger import log_exception
@@ -46,7 +47,7 @@ from plane.api.serializers import (
     ProjectCreateSerializer,
     ProjectUpdateSerializer,
 )
-from plane.app.permissions import ProjectBasePermission, WorkSpaceAdminPermission
+from plane.app.permissions import ProjectBasePermission, WorkSpaceAdminPermission, ROLE
 from plane.utils.openapi import (
     project_docs,
     PROJECT_ID_PARAMETER,
@@ -81,15 +82,8 @@ class ProjectListCreateAPIEndpoint(BaseAPIView):
     use_read_replica = True
 
     def get_queryset(self):
-        return (
+        projects = (
             Project.objects.filter(workspace__slug=self.kwargs.get("slug"))
-            .filter(
-                Q(
-                    project_projectmember__member=self.request.user,
-                    project_projectmember__is_active=True,
-                )
-                | Q(network=2)
-            )
             .select_related("project_lead")
             .annotate(
                 is_member=Exists(
@@ -139,6 +133,32 @@ class ProjectListCreateAPIEndpoint(BaseAPIView):
             .order_by(self.kwargs.get("order_by", "-created_at"))
             .distinct()
         )
+
+        # Keep project visibility aligned with the internal session API:
+        # workspace admins can see every project, while members and guests
+        # remain limited to projects they joined (plus public projects for
+        # regular members).
+        workspace_role = WorkspaceMember.objects.filter(
+            workspace__slug=self.kwargs.get("slug"),
+            member=self.request.user,
+            is_active=True,
+        ).values_list("role", flat=True).first()
+
+        if workspace_role == ROLE.GUEST.value:
+            projects = projects.filter(
+                project_projectmember__member=self.request.user,
+                project_projectmember__is_active=True,
+            )
+        elif workspace_role == ROLE.MEMBER.value:
+            projects = projects.filter(
+                Q(
+                    project_projectmember__member=self.request.user,
+                    project_projectmember__is_active=True,
+                )
+                | Q(network=2)
+            )
+
+        return projects
 
     @project_docs(
         operation_id="list_projects",

@@ -50,6 +50,23 @@ class TestProjectListCreateAPIEndpoint:
         return f"/api/v1/workspaces/{workspace_slug}/projects/"
 
     @pytest.mark.django_db
+    def test_workspace_admin_can_list_private_projects_without_membership(
+        self, api_key_client, workspace
+    ):
+        """Workspace admins can see private projects they have not joined."""
+        private_project = Project.objects.create(
+            name="Private Project",
+            identifier="PRV",
+            network=0,
+            workspace=workspace,
+        )
+
+        response = api_key_client.get(self.get_url(workspace.slug))
+
+        assert response.status_code == status.HTTP_200_OK
+        assert any(str(project["id"]) == str(private_project.id) for project in response.data["results"])
+
+    @pytest.mark.django_db
     def test_create_project_with_lead_as_creator(self, api_key_client, workspace, create_user):
         """Regression for the ghost-create bug.
 
