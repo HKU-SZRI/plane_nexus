@@ -3,6 +3,7 @@
 # See the LICENSE file for details.
 
 from .asset import urlpatterns as asset_patterns
+from .analytic import urlpatterns as analytic_patterns
 from .cycle import urlpatterns as cycle_patterns
 from .estimate import urlpatterns as estimate_patterns
 from .intake import urlpatterns as intake_patterns
@@ -23,6 +24,7 @@ from .page import urlpatterns as page_patterns
 
 urlpatterns = [
     *asset_patterns,
+    *analytic_patterns,
     *cycle_patterns,
     *estimate_patterns,
     *intake_patterns,

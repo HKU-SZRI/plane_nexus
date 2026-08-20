@@ -23,6 +23,10 @@ from plane.api.views.issue import IssueSearchEndpoint as _WorkItemSearchEndpoint
 from plane.app.views.asset.v2 import WorkspaceFileAssetEndpoint as _WorkspaceFileAssetEndpoint
 from plane.app.views.asset.v2 import ProjectAssetEndpoint as _ProjectAssetEndpoint
 from plane.app.views.asset.v2 import ProjectBulkAssetEndpoint as _ProjectBulkAssetEndpoint
+from plane.app.views.analytic.advance import AdvanceAnalyticsChartEndpoint as _AdvanceAnalyticsChartEndpoint
+from plane.app.views.analytic.advance import AdvanceAnalyticsEndpoint as _AdvanceAnalyticsEndpoint
+from plane.app.views.analytic.advance import AdvanceAnalyticsStatsEndpoint as _AdvanceAnalyticsStatsEndpoint
+from plane.app.views.analytic.base import ProjectStatsEndpoint as _ProjectStatsEndpoint
 from plane.app.views.cycle.archive import CycleArchiveUnarchiveEndpoint as _CycleArchiveUnarchiveEndpoint
 from plane.app.views.cycle.base import CycleViewSet as _CycleViewSet
 from plane.app.views.cycle.base import CycleDateCheckEndpoint as _CycleDateCheckEndpoint
@@ -101,6 +105,22 @@ class IssueSearchV1Endpoint(_IssueSearchEndpoint):
 
 
 class WorkspaceFavoriteV1Endpoint(_WorkspaceFavoriteEndpoint):
+    authentication_classes = [APIKeyAuthentication]
+
+
+class AdvanceAnalyticsV1Endpoint(_AdvanceAnalyticsEndpoint):
+    authentication_classes = [APIKeyAuthentication]
+
+
+class AdvanceAnalyticsStatsV1Endpoint(_AdvanceAnalyticsStatsEndpoint):
+    authentication_classes = [APIKeyAuthentication]
+
+
+class AdvanceAnalyticsChartV1Endpoint(_AdvanceAnalyticsChartEndpoint):
+    authentication_classes = [APIKeyAuthentication]
+
+
+class ProjectStatsV1Endpoint(_ProjectStatsEndpoint):
     authentication_classes = [APIKeyAuthentication]
 
 
