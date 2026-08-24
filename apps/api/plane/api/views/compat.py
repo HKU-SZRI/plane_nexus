@@ -45,6 +45,8 @@ from plane.app.views.issue.version import WorkItemDescriptionVersionEndpoint as 
 from plane.app.views.module.base import ModuleViewSet as _ModuleViewSet
 from plane.app.views.module.archive import ModuleArchiveUnarchiveEndpoint as _ModuleArchiveUnarchiveEndpoint
 from plane.app.views.module.issue import ModuleIssueViewSet as _ModuleIssueViewSet
+from plane.app.views.notification.base import NotificationViewSet as _NotificationViewSet
+from plane.app.views.notification.base import UnreadNotificationEndpoint as _UnreadNotificationEndpoint
 from plane.app.views.page.base import PagesDescriptionViewSet as _PagesDescriptionViewSet
 from plane.app.views.page.base import PageViewSet as _PageViewSet
 from plane.app.views.project.base import ProjectIdentifierEndpoint as _ProjectIdentifierEndpoint
@@ -105,6 +107,14 @@ class IssueSearchV1Endpoint(_IssueSearchEndpoint):
 
 
 class WorkspaceFavoriteV1Endpoint(_WorkspaceFavoriteEndpoint):
+    authentication_classes = [APIKeyAuthentication]
+
+
+class NotificationV1ViewSet(_NotificationViewSet):
+    authentication_classes = [APIKeyAuthentication]
+
+
+class UnreadNotificationV1Endpoint(_UnreadNotificationEndpoint):
     authentication_classes = [APIKeyAuthentication]
 
 

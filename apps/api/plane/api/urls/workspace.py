@@ -4,9 +4,23 @@
 
 from django.urls import path
 
-from plane.api.views.compat import WorkspaceFavoriteV1Endpoint
+from plane.api.views.compat import (
+    NotificationV1ViewSet,
+    UnreadNotificationV1Endpoint,
+    WorkspaceFavoriteV1Endpoint,
+)
 
 urlpatterns = [
+    path(
+        "workspaces/<str:slug>/users/notifications/",
+        NotificationV1ViewSet.as_view({"get": "list"}),
+        name="notifications",
+    ),
+    path(
+        "workspaces/<str:slug>/users/notifications/unread/",
+        UnreadNotificationV1Endpoint.as_view(http_method_names=["get"]),
+        name="unread-notifications",
+    ),
     path(
         "workspaces/<str:slug>/user-favorites/",
         WorkspaceFavoriteV1Endpoint.as_view(),
