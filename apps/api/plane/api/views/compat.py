@@ -40,11 +40,13 @@ from plane.app.views.issue.attachment import IssueAttachmentV2Endpoint as _Issue
 from plane.app.views.issue.link import IssueLinkViewSet as _IssueLinkViewSet
 from plane.app.views.issue.reaction import IssueReactionViewSet as _IssueReactionViewSet
 from plane.app.views.issue.relation import IssueRelationViewSet as _IssueRelationViewSet
+from plane.app.views.issue.subscriber import IssueSubscriberViewSet as _IssueSubscriberViewSet
 from plane.app.views.issue.sub_issue import SubIssuesEndpoint as _SubIssuesEndpoint
 from plane.app.views.issue.version import WorkItemDescriptionVersionEndpoint as _WorkItemDescriptionVersionEndpoint
 from plane.app.views.module.base import ModuleViewSet as _ModuleViewSet
 from plane.app.views.module.archive import ModuleArchiveUnarchiveEndpoint as _ModuleArchiveUnarchiveEndpoint
 from plane.app.views.module.issue import ModuleIssueViewSet as _ModuleIssueViewSet
+from plane.app.views.notification.base import MarkAllReadNotificationViewSet as _MarkAllReadNotificationViewSet
 from plane.app.views.notification.base import NotificationViewSet as _NotificationViewSet
 from plane.app.views.notification.base import UnreadNotificationEndpoint as _UnreadNotificationEndpoint
 from plane.app.views.page.base import PagesDescriptionViewSet as _PagesDescriptionViewSet
@@ -111,6 +113,10 @@ class WorkspaceFavoriteV1Endpoint(_WorkspaceFavoriteEndpoint):
 
 
 class NotificationV1ViewSet(_NotificationViewSet):
+    authentication_classes = [APIKeyAuthentication]
+
+
+class MarkAllReadNotificationV1ViewSet(_MarkAllReadNotificationViewSet):
     authentication_classes = [APIKeyAuthentication]
 
 
@@ -264,6 +270,10 @@ class IssueLinkV1ViewSet(_IssueLinkViewSet):
 
 
 class IssueReactionV1ViewSet(_IssueReactionViewSet):
+    authentication_classes = [APIKeyAuthentication]
+
+
+class IssueSubscriberV1ViewSet(_IssueSubscriberViewSet):
     authentication_classes = [APIKeyAuthentication]
 
 

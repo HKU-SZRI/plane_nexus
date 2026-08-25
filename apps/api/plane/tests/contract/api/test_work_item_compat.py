@@ -14,11 +14,12 @@ from plane.api.views.compat import (
     IssueAttachmentV2V1Endpoint,
     IssueLinkV1ViewSet,
     IssueRelationV1ViewSet,
+    IssueSubscriberV1ViewSet,
     ProjectBulkAssetV1Endpoint,
     ProjectUserDisplayPropertyV1Endpoint,
     SubIssuesV1Endpoint,
 )
-from plane.db.models import FileAsset, Issue, IssueComment, Project, ProjectMember
+from plane.db.models import FileAsset, Issue, IssueComment, IssueSubscriber, Project, ProjectMember
 
 
 @pytest.fixture
@@ -86,6 +87,19 @@ def assert_matching_patch_responses(api_key_client, create_user, app_url, v1_url
 @pytest.mark.contract
 @pytest.mark.django_db
 class TestWorkItemCompatResponses:
+    def test_issue_subscribe_route_uses_api_key_authentication(self, project, issue):
+        path = f"/api/v1/workspaces/{project.workspace.slug}/projects/{project.id}/issues/{issue.id}/subscribe/"
+        match = resolve(path)
+        resolved_view_class = getattr(match.func, "cls", getattr(match.func, "view_class", None))
+
+        assert resolved_view_class is IssueSubscriberV1ViewSet
+        assert match.func.actions == {
+            "get": "subscription_status",
+            "post": "subscribe",
+            "delete": "unsubscribe",
+        }
+        assert IssueSubscriberV1ViewSet.authentication_classes == [APIKeyAuthentication]
+
     @pytest.mark.parametrize(
         ("suffix", "view_class"),
         [
@@ -190,6 +204,38 @@ class TestWorkItemCompatResponses:
             f"/api/{path}",
             f"/api/v1/{path}",
         )
+
+    def test_issue_subscribe_response_matches_app_api(
+        self, session_client, api_key_client, create_user, workspace, project, issue
+    ):
+        path = f"workspaces/{workspace.slug}/projects/{project.id}/issues/{issue.id}/subscribe/"
+
+        app_response = session_client.post(f"/api/{path}")
+        IssueSubscriber.objects.filter(issue=issue, subscriber=create_user).delete()
+        v1_response = api_key_client.post(f"/api/v1/{path}")
+
+        volatile_fields = {"id", "created_at", "updated_at"}
+        app_json = {key: value for key, value in app_response.json().items() if key not in volatile_fields}
+        v1_json = {key: value for key, value in v1_response.json().items() if key not in volatile_fields}
+
+        assert app_response.status_code == status.HTTP_201_CREATED
+        assert v1_response.status_code == app_response.status_code
+        assert v1_json == app_json
+
+    def test_issue_unsubscribe_response_matches_app_api(
+        self, session_client, api_key_client, create_user, workspace, project, issue
+    ):
+        path = f"workspaces/{workspace.slug}/projects/{project.id}/issues/{issue.id}/subscribe/"
+        IssueSubscriber.objects.create(issue=issue, project=project, subscriber=create_user)
+
+        app_response = session_client.delete(f"/api/{path}")
+        IssueSubscriber.objects.create(issue=issue, project=project, subscriber=create_user)
+        v1_response = api_key_client.delete(f"/api/v1/{path}")
+
+        assert app_response.status_code == status.HTTP_204_NO_CONTENT
+        assert v1_response.status_code == app_response.status_code
+        assert v1_response.content == app_response.content
+        assert not IssueSubscriber.objects.filter(issue=issue, subscriber=create_user).exists()
 
     @patch("plane.app.views.issue.base.recent_visited_task.delay")
     def test_identifier_detail_response_and_expansions_match_app_api(
