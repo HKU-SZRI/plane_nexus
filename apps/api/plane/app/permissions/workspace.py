@@ -7,6 +7,7 @@ from rest_framework.permissions import BasePermission, SAFE_METHODS
 
 # Module imports
 from plane.db.models import WorkspaceMember
+from plane.app.permissions.base import is_trusted_nexus_call
 
 
 # Permission Mappings
@@ -18,6 +19,9 @@ Guest = 5
 # TODO: Move the below logic to python match - python v3.10
 class WorkSpaceBasePermission(BasePermission):
     def has_permission(self, request, view):
+        if is_trusted_nexus_call(request):
+            return True
+
         # allow anyone to create a workspace
         if request.user.is_anonymous:
             return False
@@ -50,6 +54,9 @@ class WorkSpaceBasePermission(BasePermission):
 
 class WorkspaceOwnerPermission(BasePermission):
     def has_permission(self, request, view):
+        if is_trusted_nexus_call(request):
+            return True
+
         if request.user.is_anonymous:
             return False
 
@@ -60,6 +67,9 @@ class WorkspaceOwnerPermission(BasePermission):
 
 class WorkSpaceAdminPermission(BasePermission):
     def has_permission(self, request, view):
+        if is_trusted_nexus_call(request):
+            return True
+
         if request.user.is_anonymous:
             return False
 
@@ -73,6 +83,9 @@ class WorkSpaceAdminPermission(BasePermission):
 
 class WorkspaceEntityPermission(BasePermission):
     def has_permission(self, request, view):
+        if is_trusted_nexus_call(request):
+            return True
+
         if request.user.is_anonymous:
             return False
 
@@ -92,6 +105,9 @@ class WorkspaceEntityPermission(BasePermission):
 
 class WorkspaceViewerPermission(BasePermission):
     def has_permission(self, request, view):
+        if is_trusted_nexus_call(request):
+            return True
+
         if request.user.is_anonymous:
             return False
 
@@ -102,6 +118,9 @@ class WorkspaceViewerPermission(BasePermission):
 
 class WorkspaceUserPermission(BasePermission):
     def has_permission(self, request, view):
+        if is_trusted_nexus_call(request):
+            return True
+
         if request.user.is_anonymous:
             return False
 

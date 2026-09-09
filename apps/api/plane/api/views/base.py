@@ -23,8 +23,8 @@ from rest_framework.generics import GenericAPIView
 
 # Module imports
 from plane.db.models.api import APIToken
-from plane.api.middleware.api_authentication import APIKeyAuthentication
-from plane.api.rate_limit import ApiKeyRateThrottle, ServiceTokenRateThrottle
+from plane.api.middleware.api_authentication import API_AUTHENTICATION_CLASSES
+from plane.api.rate_limit import ApiKeyRateThrottle, ServiceTokenRateThrottle, TrustedNexusRateThrottle
 from plane.utils.exception_logger import log_exception
 from plane.utils.paginator import BasePaginator
 from plane.utils.core.mixins import ReadReplicaControlMixin
@@ -48,7 +48,7 @@ class TimezoneMixin:
 
 
 class BaseAPIView(TimezoneMixin, GenericAPIView, ReadReplicaControlMixin, BasePaginator):
-    authentication_classes = [APIKeyAuthentication]
+    authentication_classes = API_AUTHENTICATION_CLASSES
 
     permission_classes = [IsAuthenticated]
 
@@ -61,6 +61,9 @@ class BaseAPIView(TimezoneMixin, GenericAPIView, ReadReplicaControlMixin, BasePa
 
     def get_throttles(self):
         throttle_classes = []
+        if getattr(self.request, "is_trusted_nexus_call", False):
+            return [TrustedNexusRateThrottle()]
+
         api_key = self.request.headers.get("X-Api-Key")
 
         if api_key:
@@ -167,7 +170,7 @@ class BaseAPIView(TimezoneMixin, GenericAPIView, ReadReplicaControlMixin, BasePa
 class BaseViewSet(TimezoneMixin, ReadReplicaControlMixin, ModelViewSet, BasePaginator):
     model = None
 
-    authentication_classes = [APIKeyAuthentication]
+    authentication_classes = API_AUTHENTICATION_CLASSES
     permission_classes = [
         IsAuthenticated,
     ]

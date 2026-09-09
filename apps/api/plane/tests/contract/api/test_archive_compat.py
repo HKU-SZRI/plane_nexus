@@ -9,7 +9,7 @@ from django.urls import resolve
 from django.utils import timezone
 from rest_framework import status
 
-from plane.api.middleware.api_authentication import APIKeyAuthentication
+from plane.api.middleware.api_authentication import API_AUTHENTICATION_CLASSES
 from plane.api.views.compat import (
     CycleArchiveUnarchiveV1Endpoint,
     IssueArchiveV1ViewSet,
@@ -129,7 +129,7 @@ class TestArchiveCompatResponses:
             assert method in match.func.actions
         else:
             assert method in match.func.view_initkwargs["http_method_names"]
-        assert view_class.authentication_classes == [APIKeyAuthentication]
+        assert view_class.authentication_classes == API_AUTHENTICATION_CLASSES
 
     def test_archived_work_items_response_matches_app_api(
         self, session_client, api_key_client, workspace, project, archived_issue

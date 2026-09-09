@@ -8,10 +8,14 @@ from rest_framework.permissions import SAFE_METHODS, BasePermission
 # Module import
 from plane.db.models import ProjectMember, WorkspaceMember
 from plane.db.models.project import ROLE
+from plane.app.permissions.base import is_trusted_nexus_call
 
 
 class ProjectBasePermission(BasePermission):
     def has_permission(self, request, view):
+        if is_trusted_nexus_call(request):
+            return True
+
         if request.user.is_anonymous:
             return False
 
@@ -55,6 +59,9 @@ class ProjectBasePermission(BasePermission):
 
 class ProjectMemberPermission(BasePermission):
     def has_permission(self, request, view):
+        if is_trusted_nexus_call(request):
+            return True
+
         if request.user.is_anonymous:
             return False
 
@@ -84,6 +91,9 @@ class ProjectMemberPermission(BasePermission):
 
 class ProjectEntityPermission(BasePermission):
     def has_permission(self, request, view):
+        if is_trusted_nexus_call(request):
+            return True
+
         if request.user.is_anonymous:
             return False
 
@@ -118,6 +128,9 @@ class ProjectEntityPermission(BasePermission):
 
 class ProjectAdminPermission(BasePermission):
     def has_permission(self, request, view):
+        if is_trusted_nexus_call(request):
+            return True
+
         if request.user.is_anonymous:
             return False
 
@@ -132,6 +145,9 @@ class ProjectAdminPermission(BasePermission):
 
 class ProjectLitePermission(BasePermission):
     def has_permission(self, request, view):
+        if is_trusted_nexus_call(request):
+            return True
+
         if request.user.is_anonymous:
             return False
 

@@ -28,6 +28,17 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Secret Key
 SECRET_KEY = os.environ.get("SECRET_KEY", get_random_secret_key())
 
+# Nexus trusted service channel. The channel is disabled unless a public key is
+# configured. A second key can be kept during key rotation.
+NEXUS_TRUSTED_JWT_PUBLIC_KEY = os.environ.get("NEXUS_TRUSTED_JWT_PUBLIC_KEY", "").replace("\\n", "\n")
+NEXUS_TRUSTED_JWT_PREVIOUS_PUBLIC_KEY = os.environ.get(
+    "NEXUS_TRUSTED_JWT_PREVIOUS_PUBLIC_KEY", ""
+).replace("\\n", "\n")
+NEXUS_TRUSTED_JWT_ISSUER = os.environ.get("NEXUS_TRUSTED_JWT_ISSUER", "nexus")
+NEXUS_TRUSTED_JWT_AUDIENCE = os.environ.get("NEXUS_TRUSTED_JWT_AUDIENCE", "plane")
+NEXUS_TRUSTED_JWT_MAX_TTL_SECONDS = int(os.environ.get("NEXUS_TRUSTED_JWT_MAX_TTL_SECONDS", "60"))
+NEXUS_TRUSTED_JWT_CLOCK_SKEW_SECONDS = int(os.environ.get("NEXUS_TRUSTED_JWT_CLOCK_SKEW_SECONDS", "5"))
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = int(os.environ.get("DEBUG", "0"))
 
@@ -119,7 +130,10 @@ MIDDLEWARE = [
 # Rest Framework settings
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": ("rest_framework.authentication.SessionAuthentication",),
-    "DEFAULT_THROTTLE_CLASSES": ("rest_framework.throttling.AnonRateThrottle",),
+    "DEFAULT_THROTTLE_CLASSES": (
+        "rest_framework.throttling.AnonRateThrottle",
+        "plane.api.rate_limit.TrustedNexusRateThrottle",
+    ),
     "DEFAULT_THROTTLE_RATES": {
         "anon": "30/minute",
         "asset_id": "5/minute",

@@ -5,7 +5,7 @@ import pytest
 from django.urls import resolve
 from rest_framework import status
 
-from plane.api.middleware.api_authentication import APIKeyAuthentication
+from plane.api.middleware.api_authentication import API_AUTHENTICATION_CLASSES
 from plane.api.views.compat import (
     AdvanceAnalyticsChartV1Endpoint,
     AdvanceAnalyticsStatsV1Endpoint,
@@ -31,7 +31,7 @@ class TestAnalyticsCompatRoutes:
         resolved_view_class = getattr(match.func, "cls", getattr(match.func, "view_class", None))
 
         assert resolved_view_class is view_class
-        assert view_class.authentication_classes == [APIKeyAuthentication]
+        assert view_class.authentication_classes == API_AUTHENTICATION_CLASSES
 
     @pytest.mark.parametrize(
         ("path", "params"),

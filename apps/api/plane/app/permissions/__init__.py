@@ -17,5 +17,5 @@ from .project import (
     ProjectLitePermission,
     ProjectAdminPermission,
 )
-from .base import allow_permission, ROLE
+from .base import allow_permission, is_trusted_nexus_call, ROLE
 from .page import ProjectPagePermission

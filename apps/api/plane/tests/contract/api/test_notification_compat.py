@@ -7,7 +7,7 @@ from django.utils import timezone
 from freezegun import freeze_time
 from rest_framework import status
 
-from plane.api.middleware.api_authentication import APIKeyAuthentication
+from plane.api.middleware.api_authentication import API_AUTHENTICATION_CLASSES
 from plane.api.views.compat import (
     MarkAllReadNotificationV1ViewSet,
     NotificationV1ViewSet,
@@ -53,7 +53,7 @@ class TestNotificationCompatResponses:
         resolved_view_class = getattr(match.func, "cls", getattr(match.func, "view_class", None))
 
         assert resolved_view_class is view_class
-        assert view_class.authentication_classes == [APIKeyAuthentication]
+        assert view_class.authentication_classes == API_AUTHENTICATION_CLASSES
 
     @pytest.mark.parametrize(
         ("suffix", "methods"),

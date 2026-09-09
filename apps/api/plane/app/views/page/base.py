@@ -30,7 +30,7 @@ from rest_framework import status
 from rest_framework.response import Response
 
 # Module imports
-from plane.app.permissions import allow_permission, ROLE
+from plane.app.permissions import ROLE, allow_permission, is_trusted_nexus_call
 from plane.app.serializers import (
     PageSerializer,
     PageDetailSerializer,
@@ -173,7 +173,11 @@ class PageViewSet(BaseViewSet):
                 )
 
             # Only update access if the page owner is the requesting  user
-            if page.access != request.data.get("access", page.access) and page.owned_by_id != request.user.id:
+            if (
+                not is_trusted_nexus_call(request)
+                and page.access != request.data.get("access", page.access)
+                and page.owned_by_id != request.user.id
+            ):
                 return Response(
                     {"error": "Access cannot be updated since this page is owned by someone else"},
                     status=status.HTTP_400_BAD_REQUEST,
@@ -278,7 +282,11 @@ class PageViewSet(BaseViewSet):
         )
 
         # Only update access if the page owner is the requesting user
-        if page.access != request.data.get("access", page.access) and page.owned_by_id != request.user.id:
+        if (
+            not is_trusted_nexus_call(request)
+            and page.access != request.data.get("access", page.access)
+            and page.owned_by_id != request.user.id
+        ):
             return Response(
                 {"error": "Access cannot be updated since this page is owned by someone else"},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -314,7 +322,7 @@ class PageViewSet(BaseViewSet):
         )
 
         # only the owner or admin can archive the page
-        if (
+        if not is_trusted_nexus_call(request) and (
             ProjectMember.objects.filter(
                 project_id=project_id, member=request.user, is_active=True, role__lte=15
             ).exists()
@@ -345,7 +353,7 @@ class PageViewSet(BaseViewSet):
         )
 
         # only the owner or admin can un archive the page
-        if (
+        if not is_trusted_nexus_call(request) and (
             ProjectMember.objects.filter(
                 project_id=project_id, member=request.user, is_active=True, role__lte=15
             ).exists()
@@ -379,7 +387,7 @@ class PageViewSet(BaseViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if page.owned_by_id != request.user.id and (
+        if not is_trusted_nexus_call(request) and page.owned_by_id != request.user.id and (
             not ProjectMember.objects.filter(
                 workspace__slug=slug,
                 member=request.user,

@@ -25,7 +25,7 @@ from plane.api.serializers import (
     ModuleCreateSerializer,
     ModuleUpdateSerializer,
 )
-from plane.app.permissions import ProjectEntityPermission
+from plane.app.permissions import ProjectEntityPermission, is_trusted_nexus_call
 from plane.bgtasks.issue_activities_task import issue_activity
 from plane.db.models import (
     Issue,
@@ -494,7 +494,7 @@ class ModuleDetailAPIEndpoint(BaseAPIView):
         Only admins or the module creator can perform this action.
         """
         module = Module.objects.get(workspace__slug=slug, project_id=project_id, pk=pk)
-        if module.created_by_id != request.user.id and (
+        if not is_trusted_nexus_call(request) and module.created_by_id != request.user.id and (
             not ProjectMember.objects.filter(
                 workspace__slug=slug,
                 member=request.user,

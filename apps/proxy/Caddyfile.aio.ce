@@ -11,7 +11,11 @@
         reverse_proxy localhost:3005
     }
 	handle /api/* {
-        reverse_proxy localhost:3004
+        reverse_proxy localhost:3004 {
+            # The all-in-one listener is public; trusted service credentials
+            # must arrive through a separate private deployment path.
+            header_up -X-Nexus-Trust-Token
+        }
     }
 
 	handle /auth/* {
