@@ -181,9 +181,13 @@
       "heading": "Automations",
       "description": "Configure automated actions to streamline your project management workflow and reduce manual tasks.",
       "auto-archive": {
-        "title": "Auto-archive closed work items",
-        "description": "Plane will auto archive work items that have been completed or canceled.",
-        "duration": "Auto-archive work items that are closed for"
+        "title": "Auto-archive completed work items",
+        "description": "Plane will auto archive work items that have been completed.",
+        "duration": "Auto-archive work items that are completed for"
+      },
+      "auto-archive-cancelled": {
+        "title": "Auto-archive cancelled work items",
+        "description": "Plane will archive all cancelled work items the next time the daily automation runs."
       },
       "auto-close": {
         "title": "Auto-close work items",

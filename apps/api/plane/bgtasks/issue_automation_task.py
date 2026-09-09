@@ -23,6 +23,7 @@ from plane.utils.exception_logger import log_exception
 def archive_and_close_old_issues():
     archive_old_issues()
     close_old_issues()
+    archive_cancelled_issues()
 
 
 def archive_old_issues():
@@ -40,7 +41,7 @@ def archive_old_issues():
                     project=project_id,
                     archived_at__isnull=True,
                     updated_at__lte=(timezone.now() - timedelta(days=archive_in * 30)),
-                    state__group__in=["completed", "cancelled"],
+                    state__group="completed",
                 ),
                 Q(issue_cycle__isnull=True)
                 | (Q(issue_cycle__cycle__end_date__lt=timezone.now()) & Q(issue_cycle__isnull=False)),
@@ -64,6 +65,47 @@ def archive_old_issues():
                     issues_to_update.append(issue)
 
                 # Bulk Update the issues and log the activity
+                if issues_to_update:
+                    Issue.objects.bulk_update(issues_to_update, ["archived_at"], batch_size=100)
+                    _ = [
+                        issue_activity.delay(
+                            type="issue.activity.updated",
+                            requested_data=json.dumps({"archived_at": str(archive_at), "automation": True}),
+                            actor_id=str(project.created_by_id),
+                            issue_id=issue.id,
+                            project_id=project_id,
+                            current_instance=json.dumps({"archived_at": None}),
+                            subscriber=False,
+                            epoch=int(timezone.now().timestamp()),
+                            notification=True,
+                        )
+                        for issue in issues_to_update
+                    ]
+        return
+    except Exception as e:
+        log_exception(e)
+        return
+
+
+def archive_cancelled_issues():
+    try:
+        projects = Project.objects.filter(auto_archive_cancelled_issues=True)
+
+        for project in projects:
+            project_id = project.id
+            issues = Issue.issue_objects.filter(
+                project=project_id,
+                archived_at__isnull=True,
+                state__group="cancelled",
+            )
+
+            if issues:
+                archive_at = timezone.now().date()
+                issues_to_update = []
+                for issue in issues:
+                    issue.archived_at = archive_at
+                    issues_to_update.append(issue)
+
                 if issues_to_update:
                     Issue.objects.bulk_update(issues_to_update, ["archived_at"], batch_size=100)
                     _ = [
