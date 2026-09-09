@@ -16,10 +16,19 @@ class ROLE(Enum):
     GUEST = 5
 
 
+def is_trusted_nexus_call(request):
+    """Return whether Nexus authenticated and bound this exact request."""
+
+    return getattr(request, "is_trusted_nexus_call", False)
+
+
 def allow_permission(allowed_roles, level="PROJECT", creator=False, model=None):
     def decorator(view_func):
         @wraps(view_func)
         def _wrapped_view(instance, request, *args, **kwargs):
+            if is_trusted_nexus_call(request):
+                return view_func(instance, request, *args, **kwargs)
+
             # Check for creator if required
             if creator and model:
                 # check if the user is part of the workspace or not

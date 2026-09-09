@@ -3,8 +3,8 @@
 # See the LICENSE file for details.
 
 # Thin wrappers that re-expose plane.app views under the plane.api URL namespace.
-# The main change is swapping BaseSessionAuthentication for APIKeyAuthentication
-# so that requests authenticated via X-API-Key header are accepted. IssueV1ViewSet
+# The main change is swapping BaseSessionAuthentication for the external API
+# authentication stack, so API keys and trusted Nexus requests are accepted. IssueV1ViewSet
 # additionally shims the wire contract back to what the public /api/v1/ docs
 # promise (plane-mcp-server and other API-key clients are built against that
 # contract, not plane.app's internal one) — see _normalize_write_fields below.
@@ -18,7 +18,7 @@ from django.db.models.functions import Coalesce
 from rest_framework import status
 from rest_framework.response import Response
 
-from plane.api.middleware.api_authentication import APIKeyAuthentication
+from plane.api.middleware.api_authentication import API_AUTHENTICATION_CLASSES
 from plane.api.views.issue import IssueSearchEndpoint as _WorkItemSearchEndpoint
 from plane.app.views.asset.v2 import WorkspaceFileAssetEndpoint as _WorkspaceFileAssetEndpoint
 from plane.app.views.asset.v2 import ProjectAssetEndpoint as _ProjectAssetEndpoint
@@ -89,55 +89,55 @@ class _PaginatedListShimMixin:
 
 
 class CycleV1ViewSet(_PaginatedListShimMixin, _CycleViewSet):
-    authentication_classes = [APIKeyAuthentication]
+    authentication_classes = API_AUTHENTICATION_CLASSES
 
 
 class CycleArchiveUnarchiveV1Endpoint(_CycleArchiveUnarchiveEndpoint):
-    authentication_classes = [APIKeyAuthentication]
+    authentication_classes = API_AUTHENTICATION_CLASSES
 
 
 class CycleProgressV1Endpoint(_CycleProgressEndpoint):
-    authentication_classes = [APIKeyAuthentication]
+    authentication_classes = API_AUTHENTICATION_CLASSES
 
 
 class CycleDateCheckV1Endpoint(_CycleDateCheckEndpoint):
-    authentication_classes = [APIKeyAuthentication]
+    authentication_classes = API_AUTHENTICATION_CLASSES
 
 
 class IssueSearchV1Endpoint(_IssueSearchEndpoint):
-    authentication_classes = [APIKeyAuthentication]
+    authentication_classes = API_AUTHENTICATION_CLASSES
 
 
 class WorkspaceFavoriteV1Endpoint(_WorkspaceFavoriteEndpoint):
-    authentication_classes = [APIKeyAuthentication]
+    authentication_classes = API_AUTHENTICATION_CLASSES
 
 
 class NotificationV1ViewSet(_NotificationViewSet):
-    authentication_classes = [APIKeyAuthentication]
+    authentication_classes = API_AUTHENTICATION_CLASSES
 
 
 class MarkAllReadNotificationV1ViewSet(_MarkAllReadNotificationViewSet):
-    authentication_classes = [APIKeyAuthentication]
+    authentication_classes = API_AUTHENTICATION_CLASSES
 
 
 class UnreadNotificationV1Endpoint(_UnreadNotificationEndpoint):
-    authentication_classes = [APIKeyAuthentication]
+    authentication_classes = API_AUTHENTICATION_CLASSES
 
 
 class AdvanceAnalyticsV1Endpoint(_AdvanceAnalyticsEndpoint):
-    authentication_classes = [APIKeyAuthentication]
+    authentication_classes = API_AUTHENTICATION_CLASSES
 
 
 class AdvanceAnalyticsStatsV1Endpoint(_AdvanceAnalyticsStatsEndpoint):
-    authentication_classes = [APIKeyAuthentication]
+    authentication_classes = API_AUTHENTICATION_CLASSES
 
 
 class AdvanceAnalyticsChartV1Endpoint(_AdvanceAnalyticsChartEndpoint):
-    authentication_classes = [APIKeyAuthentication]
+    authentication_classes = API_AUTHENTICATION_CLASSES
 
 
 class ProjectStatsV1Endpoint(_ProjectStatsEndpoint):
-    authentication_classes = [APIKeyAuthentication]
+    authentication_classes = API_AUTHENTICATION_CLASSES
 
 
 class IssueV1ViewSet(_IssueViewSet):
@@ -151,7 +151,7 @@ class IssueV1ViewSet(_IssueViewSet):
     on the way out, so both contracts keep working through one shared code path.
     """
 
-    authentication_classes = [APIKeyAuthentication]
+    authentication_classes = API_AUTHENTICATION_CLASSES
 
     _WRITE_FIELD_ALIASES = {"assignees": "assignee_ids", "labels": "label_ids"}
 
@@ -198,91 +198,91 @@ class IssueV1ViewSet(_IssueViewSet):
 
 
 class IssueArchiveV1ViewSet(_IssueArchiveViewSet):
-    authentication_classes = [APIKeyAuthentication]
+    authentication_classes = API_AUTHENTICATION_CLASSES
 
 
 class ModuleIssueV1ViewSet(_ModuleIssueViewSet):
-    authentication_classes = [APIKeyAuthentication]
+    authentication_classes = API_AUTHENTICATION_CLASSES
 
 
 class ModuleV1ViewSet(_PaginatedListShimMixin, _ModuleViewSet):
-    authentication_classes = [APIKeyAuthentication]
+    authentication_classes = API_AUTHENTICATION_CLASSES
 
 
 class ModuleArchiveUnarchiveV1Endpoint(_ModuleArchiveUnarchiveEndpoint):
-    authentication_classes = [APIKeyAuthentication]
+    authentication_classes = API_AUTHENTICATION_CLASSES
 
 
 class IssueViewV1ViewSet(_IssueViewViewSet):
-    authentication_classes = [APIKeyAuthentication]
+    authentication_classes = API_AUTHENTICATION_CLASSES
 
 
 class PageV1ViewSet(_PaginatedListShimMixin, _PageViewSet):
-    authentication_classes = [APIKeyAuthentication]
+    authentication_classes = API_AUTHENTICATION_CLASSES
 
 
 class PageDescriptionV1ViewSet(_PagesDescriptionViewSet):
-    authentication_classes = [APIKeyAuthentication]
+    authentication_classes = API_AUTHENTICATION_CLASSES
 
 
 class ProjectAssetV1Endpoint(_ProjectAssetEndpoint):
-    authentication_classes = [APIKeyAuthentication]
+    authentication_classes = API_AUTHENTICATION_CLASSES
 
 
 class ProjectBulkAssetV1Endpoint(_ProjectBulkAssetEndpoint):
-    authentication_classes = [APIKeyAuthentication]
+    authentication_classes = API_AUTHENTICATION_CLASSES
 
 
 class IssueAttachmentV2V1Endpoint(_IssueAttachmentV2Endpoint):
-    authentication_classes = [APIKeyAuthentication]
+    authentication_classes = API_AUTHENTICATION_CLASSES
 
 
 class WorkspaceFileAssetV1Endpoint(_WorkspaceFileAssetEndpoint):
-    authentication_classes = [APIKeyAuthentication]
+    authentication_classes = API_AUTHENTICATION_CLASSES
 
 
 class ProjectIdentifierV1Endpoint(_ProjectIdentifierEndpoint):
-    authentication_classes = [APIKeyAuthentication]
+    authentication_classes = API_AUTHENTICATION_CLASSES
 
 
 class ProjectUserDisplayPropertyV1Endpoint(_ProjectUserDisplayPropertyEndpoint):
-    authentication_classes = [APIKeyAuthentication]
+    authentication_classes = API_AUTHENTICATION_CLASSES
 
 
 class StateV1ViewSet(_StateViewSet):
-    authentication_classes = [APIKeyAuthentication]
+    authentication_classes = API_AUTHENTICATION_CLASSES
 
 
 class BulkEstimatePointV1Endpoint(_BulkEstimatePointEndpoint):
-    authentication_classes = [APIKeyAuthentication]
+    authentication_classes = API_AUTHENTICATION_CLASSES
 
 
 class WorkItemDescriptionVersionV1Endpoint(_WorkItemDescriptionVersionEndpoint):
-    authentication_classes = [APIKeyAuthentication]
+    authentication_classes = API_AUTHENTICATION_CLASSES
 
 
 class IssueRelationV1ViewSet(_IssueRelationViewSet):
-    authentication_classes = [APIKeyAuthentication]
+    authentication_classes = API_AUTHENTICATION_CLASSES
 
 
 class IssueLinkV1ViewSet(_IssueLinkViewSet):
-    authentication_classes = [APIKeyAuthentication]
+    authentication_classes = API_AUTHENTICATION_CLASSES
 
 
 class IssueReactionV1ViewSet(_IssueReactionViewSet):
-    authentication_classes = [APIKeyAuthentication]
+    authentication_classes = API_AUTHENTICATION_CLASSES
 
 
 class IssueSubscriberV1ViewSet(_IssueSubscriberViewSet):
-    authentication_classes = [APIKeyAuthentication]
+    authentication_classes = API_AUTHENTICATION_CLASSES
 
 
 class SubIssuesV1Endpoint(_SubIssuesEndpoint):
-    authentication_classes = [APIKeyAuthentication]
+    authentication_classes = API_AUTHENTICATION_CLASSES
 
 
 class IssueDetailIdentifierV1Endpoint(_IssueDetailIdentifierEndpoint):
-    authentication_classes = [APIKeyAuthentication]
+    authentication_classes = API_AUTHENTICATION_CLASSES
 
 
 class WorkItemSearchV1Endpoint(_WorkItemSearchEndpoint):

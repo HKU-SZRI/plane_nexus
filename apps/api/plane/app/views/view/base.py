@@ -23,7 +23,7 @@ from rest_framework import status
 from rest_framework.response import Response
 
 # Module imports
-from plane.app.permissions import allow_permission, ROLE
+from plane.app.permissions import ROLE, allow_permission, is_trusted_nexus_call
 from plane.app.serializers import IssueViewSerializer, ViewIssueListSerializer
 from plane.db.models import (
     Issue,
@@ -349,7 +349,7 @@ class IssueViewViewSet(BaseViewSet):
                 return Response({"error": "view is locked"}, status=status.HTTP_400_BAD_REQUEST)
 
             # Only update the view if owner is updating
-            if issue_view.owned_by_id != request.user.id:
+            if not is_trusted_nexus_call(request) and issue_view.owned_by_id != request.user.id:
                 return Response(
                     {"error": "Only the owner of the view can update the view"},
                     status=status.HTTP_400_BAD_REQUEST,
@@ -365,7 +365,7 @@ class IssueViewViewSet(BaseViewSet):
     @allow_permission(allowed_roles=[ROLE.ADMIN], creator=True, model=IssueView)
     def destroy(self, request, slug, project_id, pk):
         project_view = IssueView.objects.get(pk=pk, project_id=project_id, workspace__slug=slug)
-        if (
+        if is_trusted_nexus_call(request) or (
             ProjectMember.objects.filter(
                 workspace__slug=slug,
                 project_id=project_id,

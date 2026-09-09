@@ -89,3 +89,20 @@ class ServiceTokenRateThrottle(SimpleRateThrottle):
             request.META["X-RateLimit-Reset"] = reset_time
 
         return allowed
+
+
+class TrustedNexusRateThrottle(SimpleRateThrottle):
+    """Limit trusted requests per actor without changing other auth flows."""
+
+    scope = "trusted_nexus"
+    rate = os.environ.get("NEXUS_TRUSTED_RATE_LIMIT", "600/minute")
+
+    def get_cache_key(self, request, view):
+        if not getattr(request, "is_trusted_nexus_call", False):
+            return None
+
+        claims = getattr(request, "trusted_nexus_claims", {})
+        actor_plane_id = claims.get("actor_plane_id")
+        if not actor_plane_id:
+            return None
+        return self.cache_format % {"scope": self.scope, "ident": actor_plane_id}

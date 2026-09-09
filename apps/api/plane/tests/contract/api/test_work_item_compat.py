@@ -9,7 +9,7 @@ from django.urls import resolve
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from plane.api.middleware.api_authentication import APIKeyAuthentication
+from plane.api.middleware.api_authentication import API_AUTHENTICATION_CLASSES
 from plane.api.views.compat import (
     IssueAttachmentV2V1Endpoint,
     IssueLinkV1ViewSet,
@@ -81,7 +81,13 @@ def assert_matching_patch_responses(api_key_client, create_user, app_url, v1_url
 
     assert app_response.status_code == status.HTTP_200_OK
     assert v1_response.status_code == status.HTTP_200_OK
-    assert v1_response.json() == app_response.json()
+    app_body = app_response.json()
+    v1_body = v1_response.json()
+    # These requests run sequentially against the same row, so the database
+    # timestamp necessarily differs even when the endpoint contracts match.
+    app_body.pop("updated_at", None)
+    v1_body.pop("updated_at", None)
+    assert v1_body == app_body
 
 
 @pytest.mark.contract
@@ -98,7 +104,7 @@ class TestWorkItemCompatResponses:
             "post": "subscribe",
             "delete": "unsubscribe",
         }
-        assert IssueSubscriberV1ViewSet.authentication_classes == [APIKeyAuthentication]
+        assert IssueSubscriberV1ViewSet.authentication_classes == API_AUTHENTICATION_CLASSES
 
     @pytest.mark.parametrize(
         ("suffix", "view_class"),
@@ -123,7 +129,7 @@ class TestWorkItemCompatResponses:
             assert match.func.actions["post"] == "create"
         else:
             assert "post" in match.func.view_initkwargs["http_method_names"]
-        assert view_class.authentication_classes == [APIKeyAuthentication]
+        assert view_class.authentication_classes == API_AUTHENTICATION_CLASSES
 
     @pytest.mark.parametrize(
         ("path", "method", "view_class"),
@@ -160,8 +166,9 @@ class TestWorkItemCompatResponses:
 
         assert resolved_view_class is view_class
         if method:
-            assert method in match.func.view_initkwargs["http_method_names"]
-        assert view_class.authentication_classes == [APIKeyAuthentication]
+            assert method in view_class.http_method_names
+            assert callable(getattr(view_class, method, None))
+        assert view_class.authentication_classes == API_AUTHENTICATION_CLASSES
 
     def test_description_versions_response_matches_app_api(
         self, api_key_client, create_user, workspace, project, issue

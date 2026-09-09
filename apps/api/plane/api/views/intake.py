@@ -25,7 +25,7 @@ from plane.api.serializers import (
     IntakeIssueCreateSerializer,
     IntakeIssueUpdateSerializer,
 )
-from plane.app.permissions import ProjectLitePermission
+from plane.app.permissions import ProjectLitePermission, is_trusted_nexus_call
 from plane.bgtasks.issue_activities_task import issue_activity
 from plane.db.models import Intake, IntakeIssue, Issue, Project, ProjectMember, State, StateGroup
 from plane.utils.host import base_host
@@ -475,7 +475,7 @@ class IntakeIssueDetailAPIEndpoint(BaseAPIView):
         if intake_issue.status in [-2, -1, 0, 2]:
             # Delete the issue also
             issue = Issue.objects.filter(workspace__slug=slug, project_id=project_id, pk=issue_id).first()
-            if issue.created_by_id != request.user.id and (
+            if not is_trusted_nexus_call(request) and issue.created_by_id != request.user.id and (
                 not ProjectMember.objects.filter(
                     workspace__slug=slug,
                     member=request.user,

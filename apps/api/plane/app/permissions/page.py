@@ -4,6 +4,7 @@
 
 from plane.db.models import ProjectMember, Page
 from plane.app.permissions import ROLE
+from plane.app.permissions.base import is_trusted_nexus_call
 
 
 from rest_framework.permissions import BasePermission, SAFE_METHODS
@@ -25,6 +26,9 @@ class ProjectPagePermission(BasePermission):
         """
         Check basic project-level permissions before checking object-level permissions.
         """
+        if is_trusted_nexus_call(request):
+            return True
+
         if request.user.is_anonymous:
             return False
 

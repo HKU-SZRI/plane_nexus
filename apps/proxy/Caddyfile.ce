@@ -11,7 +11,11 @@
 	
 	reverse_proxy /live/* live:3000
 
-	reverse_proxy /api/* api:8000
+	reverse_proxy /api/* api:8000 {
+		# Trusted Nexus credentials are accepted only on the private api:8000
+		# listener. Never forward them from Plane's public ingress.
+		header_up -X-Nexus-Trust-Token
+	}
 
 	reverse_proxy /auth/* api:8000
 

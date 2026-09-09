@@ -66,6 +66,7 @@ from plane.app.permissions import (
     ProjectEntityPermission,
     ProjectLitePermission,
     ProjectMemberPermission,
+    is_trusted_nexus_call,
 )
 from plane.bgtasks.issue_activities_task import issue_activity
 from plane.db.models import (
@@ -817,7 +818,7 @@ class IssueDetailAPIEndpoint(BaseAPIView):
         Only admins or the item creator can perform this action.
         """
         issue = Issue.objects.get(workspace__slug=slug, project_id=project_id, pk=pk)
-        if issue.created_by_id != request.user.id and (
+        if not is_trusted_nexus_call(request) and issue.created_by_id != request.user.id and (
             not ProjectMember.objects.filter(
                 workspace__slug=slug,
                 member=request.user,
@@ -1850,7 +1851,7 @@ class IssueAttachmentListCreateAPIEndpoint(BaseAPIView):
         """
         issue = Issue.objects.get(pk=issue_id, workspace__slug=slug, project_id=project_id)
         # if the user is creator or admin,member then allow the upload
-        if not user_has_issue_permission(
+        if not is_trusted_nexus_call(request) and not user_has_issue_permission(
             request.user.id,
             project_id=project_id,
             issue=issue,
@@ -2006,7 +2007,7 @@ class IssueAttachmentDetailAPIEndpoint(BaseAPIView):
         """
         issue = Issue.objects.get(pk=issue_id, workspace__slug=slug, project_id=project_id)
         # if the request user is creator or admin then delete the attachment
-        if not user_has_issue_permission(
+        if not is_trusted_nexus_call(request) and not user_has_issue_permission(
             request.user.id,
             project_id=project_id,
             issue=issue,
@@ -2144,7 +2145,7 @@ class IssueAttachmentDetailAPIEndpoint(BaseAPIView):
 
         issue = Issue.objects.get(pk=issue_id, workspace__slug=slug, project_id=project_id)
         # if the user is creator or admin then allow the upload
-        if not user_has_issue_permission(
+        if not is_trusted_nexus_call(request) and not user_has_issue_permission(
             request.user.id,
             project_id=project_id,
             issue=issue,
