@@ -8,6 +8,7 @@ import { useState } from "react";
 import { omit } from "lodash-es";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
+import { ArrowRightLeft } from "lucide-react";
 // plane imports
 import { ARCHIVABLE_STATE_GROUPS, EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import type { TIssue } from "@plane/types";
@@ -25,6 +26,7 @@ import { DuplicateWorkItemModal } from "@/plane-web/components/issues/issue-layo
 import { ArchiveIssueModal } from "../../archive-issue-modal";
 import { DeleteIssueModal } from "../../delete-issue-modal";
 import { CreateUpdateIssueModal } from "../../issue-modal/modal";
+import { TransferIssueModal } from "../../transfer-issue-modal";
 import type { IQuickActionProps } from "../list/list-view-types";
 import type { MenuItemFactoryProps } from "./helper";
 import { useProjectIssueMenuItems } from "./helper";
@@ -49,6 +51,7 @@ export const ProjectIssueQuickActions = observer(function ProjectIssueQuickActio
   const [deleteIssueModal, setDeleteIssueModal] = useState(false);
   const [archiveIssueModal, setArchiveIssueModal] = useState(false);
   const [duplicateWorkItemModal, setDuplicateWorkItemModal] = useState(false);
+  const [transferIssueModal, setTransferIssueModal] = useState(false);
   // store hooks
   const { allowPermissions } = useUserPermissions();
   const { issuesFilter } = useIssues(EIssuesStoreType.PROJECT);
@@ -100,7 +103,17 @@ export const ProjectIssueQuickActions = observer(function ProjectIssueQuickActio
     storeType: EIssuesStoreType.PROJECT,
   };
 
-  const MENU_ITEMS = useProjectIssueMenuItems(menuItemProps);
+  const baseMenuItems = useProjectIssueMenuItems(menuItemProps);
+
+  const MENU_ITEMS = baseMenuItems.concat([
+    {
+      key: "transfer",
+      title: "Move to project",
+      icon: ArrowRightLeft,
+      action: () => setTransferIssueModal(true),
+      shouldRender: isEditingAllowed && !issue.archived_at,
+    },
+  ]);
 
   const CONTEXT_MENU_ITEMS = MENU_ITEMS.map(function CONTEXT_MENU_ITEMS(item) {
     return {
@@ -139,6 +152,14 @@ export const ProjectIssueQuickActions = observer(function ProjectIssueQuickActio
         }}
         storeType={EIssuesStoreType.PROJECT}
       />
+      {issue.project_id && workspaceSlug && (
+        <TransferIssueModal
+          workspaceSlug={workspaceSlug.toString()}
+          issue={issue}
+          isOpen={transferIssueModal}
+          handleClose={() => setTransferIssueModal(false)}
+        />
+      )}
       {issue.project_id && workspaceSlug && (
         <DuplicateWorkItemModal
           workItemId={issue.id}
