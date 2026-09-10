@@ -23,6 +23,7 @@ from plane.api.views.compat import (
     IssueReactionV1ViewSet,
     IssueRelationV1ViewSet,
     IssueSubscriberV1ViewSet,
+    IssueTransferV1Endpoint,
     IssueV1ViewSet,
     ModuleIssueV1ViewSet,
     SubIssuesV1Endpoint,
@@ -230,6 +231,11 @@ new_url_patterns = [
         "workspaces/<str:slug>/projects/<uuid:project_id>/work-items/<uuid:issue_id>/reactions/<str:reaction_code>/",
         IssueReactionV1ViewSet.as_view({"delete": "destroy"}),
         name="work-item-reaction-detail",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/work-items/<uuid:issue_id>/transfer/",
+        IssueTransferV1Endpoint.as_view(http_method_names=["post"]),
+        name="work-item-transfer",
     ),
 ]
 

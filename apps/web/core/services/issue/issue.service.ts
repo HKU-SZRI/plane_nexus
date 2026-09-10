@@ -37,6 +37,21 @@ export class IssueService extends APIService {
       });
   }
 
+  async transferIssue(
+    workspaceSlug: string,
+    projectId: string,
+    issueId: string,
+    targetProjectId: string
+  ): Promise<{ id: string; project_id: string; sequence_id: number; url: string }> {
+    return this.post(`/api/workspaces/${workspaceSlug}/projects/${projectId}/issues/${issueId}/transfer/`, {
+      target_project_id: targetProjectId,
+    })
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
   async getIssuesFromServer(
     workspaceSlug: string,
     projectId: string,

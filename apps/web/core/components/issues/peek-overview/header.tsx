@@ -63,6 +63,7 @@ export type PeekOverviewHeaderProps = {
   toggleArchiveIssueModal: (value: boolean) => void;
   toggleDuplicateIssueModal: (value: boolean) => void;
   toggleEditIssueModal: (value: boolean) => void;
+  toggleTransferIssueModal: (value: boolean) => void;
   handleRestoreIssue: () => Promise<void>;
   isSubmitting: TNameDescriptionLoader;
 };
@@ -82,6 +83,7 @@ export const IssuePeekOverviewHeader = observer(function IssuePeekOverviewHeader
     toggleArchiveIssueModal,
     toggleDuplicateIssueModal,
     toggleEditIssueModal,
+    toggleTransferIssueModal,
     handleRestoreIssue,
     isSubmitting,
   } = props;
@@ -125,6 +127,7 @@ export const IssuePeekOverviewHeader = observer(function IssuePeekOverviewHeader
         title: t("common.link_copied"),
         message: t("common.link_copied_to_clipboard"),
       });
+      return;
     });
   };
 
@@ -134,6 +137,7 @@ export const IssuePeekOverviewHeader = observer(function IssuePeekOverviewHeader
 
       return deleteIssue(workspaceSlug, projectId, issueId).then(() => {
         setPeekIssue(undefined);
+        return;
       });
     } catch (_error) {
       setToast({
@@ -220,6 +224,7 @@ export const IssuePeekOverviewHeader = observer(function IssuePeekOverviewHeader
               toggleArchiveIssueModal={toggleArchiveIssueModal}
               toggleDuplicateIssueModal={toggleDuplicateIssueModal}
               toggleEditIssueModal={toggleEditIssueModal}
+              toggleTransferIssueModal={toggleTransferIssueModal}
               isPeekMode
             />
           )}

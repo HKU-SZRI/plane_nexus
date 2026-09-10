@@ -42,6 +42,7 @@ from plane.app.views.issue.reaction import IssueReactionViewSet as _IssueReactio
 from plane.app.views.issue.relation import IssueRelationViewSet as _IssueRelationViewSet
 from plane.app.views.issue.subscriber import IssueSubscriberViewSet as _IssueSubscriberViewSet
 from plane.app.views.issue.sub_issue import SubIssuesEndpoint as _SubIssuesEndpoint
+from plane.app.views.issue.transfer import IssueTransferEndpoint as _IssueTransferEndpoint
 from plane.app.views.issue.version import WorkItemDescriptionVersionEndpoint as _WorkItemDescriptionVersionEndpoint
 from plane.app.views.module.base import ModuleViewSet as _ModuleViewSet
 from plane.app.views.module.archive import ModuleArchiveUnarchiveEndpoint as _ModuleArchiveUnarchiveEndpoint
@@ -198,6 +199,10 @@ class IssueV1ViewSet(_IssueViewSet):
 
 
 class IssueArchiveV1ViewSet(_IssueArchiveViewSet):
+    authentication_classes = [APIKeyAuthentication]
+
+
+class IssueTransferV1Endpoint(_IssueTransferEndpoint):
     authentication_classes = [APIKeyAuthentication]
 
 

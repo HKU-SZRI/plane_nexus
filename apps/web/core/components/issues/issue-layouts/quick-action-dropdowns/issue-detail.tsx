@@ -8,7 +8,7 @@ import { useState } from "react";
 import { omit } from "lodash-es";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
-import { Ellipsis } from "lucide-react";
+import { ArrowRightLeft, Ellipsis } from "lucide-react";
 // plane imports
 import { ARCHIVABLE_STATE_GROUPS, EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import type { TIssue } from "@plane/types";
@@ -26,6 +26,7 @@ import { DuplicateWorkItemModal } from "@/plane-web/components/issues/issue-layo
 import { ArchiveIssueModal } from "../../archive-issue-modal";
 import { DeleteIssueModal } from "../../delete-issue-modal";
 import { CreateUpdateIssueModal } from "../../issue-modal/modal";
+import { TransferIssueModal } from "../../transfer-issue-modal";
 import type { IQuickActionProps } from "../list/list-view-types";
 import type { MenuItemFactoryProps } from "./helper";
 import { useWorkItemDetailMenuItems } from "./helper";
@@ -36,6 +37,7 @@ type TWorkItemDetailQuickActionProps = IQuickActionProps & {
   toggleDeleteIssueModal?: (value: boolean) => void;
   toggleDuplicateIssueModal?: (value: boolean) => void;
   toggleArchiveIssueModal?: (value: boolean) => void;
+  toggleTransferIssueModal?: (value: boolean) => void;
   isPeekMode?: boolean;
 };
 
@@ -56,6 +58,7 @@ export const WorkItemDetailQuickActions = observer(function WorkItemDetailQuickA
     toggleDeleteIssueModal,
     toggleDuplicateIssueModal,
     toggleArchiveIssueModal,
+    toggleTransferIssueModal,
     isPeekMode = false,
   } = props;
   // router
@@ -66,6 +69,7 @@ export const WorkItemDetailQuickActions = observer(function WorkItemDetailQuickA
   const [deleteIssueModal, setDeleteIssueModal] = useState(false);
   const [archiveIssueModal, setArchiveIssueModal] = useState(false);
   const [duplicateWorkItemModal, setDuplicateWorkItemModal] = useState(false);
+  const [transferIssueModal, setTransferIssueModal] = useState(false);
   // store hooks
   const { allowPermissions } = useUserPermissions();
   const { issuesFilter } = useIssues(EIssuesStoreType.PROJECT);
@@ -125,6 +129,11 @@ export const WorkItemDetailQuickActions = observer(function WorkItemDetailQuickA
     if (handleRestore) await handleRestore();
   };
 
+  const customTransferAction = () => {
+    setTransferIssueModal(true);
+    if (toggleTransferIssueModal) toggleTransferIssueModal(true);
+  };
+
   // Menu items and modals using helper
   const menuItemProps: MenuItemFactoryProps = {
     issue,
@@ -155,26 +164,23 @@ export const WorkItemDetailQuickActions = observer(function WorkItemDetailQuickA
     .map((item) => {
       // Customize edit action for work item
       if (item.key === "edit") {
-        return {
-          ...item,
-          shouldRender: isEditingAllowed && !isPeekMode,
-        };
-      }
-      // Customize delete action for work item
-      if (item.key === "delete") {
-        return {
-          ...item,
-        };
+        return Object.assign(item, { shouldRender: isEditingAllowed && !isPeekMode });
       }
       // Hide copy link in peek mode
       if (item.key === "copy-link") {
-        return {
-          ...item,
-          shouldRender: !isPeekMode,
-        };
+        return Object.assign(item, { shouldRender: !isPeekMode });
       }
       return item;
     })
+    .concat([
+      {
+        key: "transfer",
+        title: "Move to project",
+        icon: ArrowRightLeft,
+        action: customTransferAction,
+        shouldRender: isEditingAllowed && !issue.archived_at,
+      },
+    ])
     .filter(function MENU_ITEMS(item) {
       return item.shouldRender !== false;
     });
@@ -224,6 +230,17 @@ export const WorkItemDetailQuickActions = observer(function WorkItemDetailQuickA
         storeType={EIssuesStoreType.PROJECT}
         fetchIssueDetails={false}
       />
+      {issue.project_id && workspaceSlug && (
+        <TransferIssueModal
+          workspaceSlug={workspaceSlug.toString()}
+          issue={issue}
+          isOpen={transferIssueModal}
+          handleClose={() => {
+            setTransferIssueModal(false);
+            if (toggleTransferIssueModal) toggleTransferIssueModal(false);
+          }}
+        />
+      )}
       {issue.project_id && workspaceSlug && (
         <DuplicateWorkItemModal
           workItemId={issue.id}
