@@ -203,7 +203,7 @@ class IssueArchiveV1ViewSet(_IssueArchiveViewSet):
 
 
 class IssueTransferV1Endpoint(_IssueTransferEndpoint):
-    authentication_classes = [APIKeyAuthentication]
+    authentication_classes = API_AUTHENTICATION_CLASSES
 
 
 class ModuleIssueV1ViewSet(_ModuleIssueViewSet):
