@@ -9,9 +9,16 @@ from plane.api.views.compat import (
     NotificationV1ViewSet,
     UnreadNotificationV1Endpoint,
     WorkspaceFavoriteV1Endpoint,
+    WorkspaceMemberActivityV1Endpoint,
 )
 
+
 urlpatterns = [
+    path(
+        "workspaces/<str:slug>/member-activity-summary/",
+        WorkspaceMemberActivityV1Endpoint.as_view(),
+        name="workspace-member-activity-summary-v1",
+    ),
     path(
         "workspaces/<str:slug>/users/notifications/",
         NotificationV1ViewSet.as_view({"get": "list"}),

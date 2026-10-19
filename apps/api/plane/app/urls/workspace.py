@@ -37,9 +37,15 @@ from plane.app.views import (
     WorkspaceStickyViewSet,
     WorkspaceUserPreferenceViewSet,
 )
+from plane.app.views.workspace.member_activity import WorkspaceMemberActivityEndpoint
 
 
 urlpatterns = [
+    path(
+        "workspaces/<str:slug>/member-activity-summary/",
+        WorkspaceMemberActivityEndpoint.as_view(),
+        name="workspace-member-activity-summary",
+    ),
     path(
         "workspace-slug-check/",
         WorkSpaceAvailabilityCheckEndpoint.as_view(),
