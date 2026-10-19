@@ -57,6 +57,7 @@ from plane.app.views.search.issue import IssueSearchEndpoint as _IssueSearchEndp
 from plane.app.views.state.base import StateViewSet as _StateViewSet
 from plane.app.views.view.base import IssueViewViewSet as _IssueViewViewSet
 from plane.app.views.workspace.favorite import WorkspaceFavoriteEndpoint as _WorkspaceFavoriteEndpoint
+from plane.app.views.workspace.member_activity import WorkspaceMemberActivityEndpoint as _WorkspaceMemberActivityEndpoint
 from plane.db.models import Issue, Label
 
 
@@ -393,3 +394,7 @@ class WorkItemSearchV1Endpoint(_WorkItemSearchEndpoint):
                 row["labels"] = [{"id": lid} for lid in row.pop("_label_ids")]
 
         return Response({"issues": issue_results}, status=status.HTTP_200_OK)
+
+
+class WorkspaceMemberActivityV1Endpoint(_WorkspaceMemberActivityEndpoint):
+    authentication_classes = API_AUTHENTICATION_CLASSES
