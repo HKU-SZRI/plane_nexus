@@ -198,4 +198,5 @@ class DynamicBaseSerializer(BaseSerializer):
                 else:
                     response["issue_attachments"] = []
 
-        return response
+        from plane.utils.issue_link_visibility import protect_issue_links
+        return protect_issue_links(instance, response, self.context)

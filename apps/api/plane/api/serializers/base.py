@@ -72,9 +72,25 @@ class BaseSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         response = super().to_representation(instance)
 
+        parent_hidden = False
+        if getattr(instance, "parent_id", None) and instance.parent.project_id != instance.project_id:
+            from crum import get_current_user
+            from plane.db.models import ProjectMember
+            request = self.context.get("request")
+            user = request.user if request else get_current_user()
+            parent_hidden = not user or not getattr(user, "is_authenticated", False) or not ProjectMember.objects.filter(
+                project_id=instance.parent.project_id, member=user, is_active=True
+            ).exists()
+            if parent_hidden:
+                for key in ("parent", "parent_id"):
+                    if key in response:
+                        response[key] = None
+
         # Ensure 'expand' is iterable before processing
         if self.expand:
             for expand in self.expand:
+                if expand == "parent" and parent_hidden:
+                    continue
                 if expand in self.fields:
                     # Import all the expandable serializers
                     from . import (
