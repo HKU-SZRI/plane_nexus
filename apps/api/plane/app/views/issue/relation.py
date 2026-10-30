@@ -100,7 +100,7 @@ class IssueRelationViewSet(BaseViewSet):
         )
 
         queryset = (
-            Issue.issue_objects.filter(workspace__slug=slug)
+            Issue.issue_objects.filter(workspace__slug=slug).filter(project__project_projectmember__member=request.user, project__project_projectmember__deleted_at__isnull=True, project__project_projectmember__is_active=True)
             .select_related("workspace", "project", "state", "parent")
             .prefetch_related("assignees", "labels", "issue_module__module")
             .annotate(

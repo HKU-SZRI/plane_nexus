@@ -36,7 +36,7 @@ class SubIssuesEndpoint(BaseAPIView):
     @method_decorator(gzip_page)
     def get(self, request, slug, project_id, issue_id):
         sub_issues = (
-            Issue.issue_objects.filter(parent_id=issue_id, workspace__slug=slug)
+            Issue.issue_objects.filter(parent_id=issue_id, workspace__slug=slug).filter(project__project_projectmember__member=request.user, project__project_projectmember__deleted_at__isnull=True, project__project_projectmember__is_active=True)
             .annotate(
                 cycle_id=Subquery(
                     CycleIssue.objects.filter(issue=OuterRef("id"), deleted_at__isnull=True).values("cycle_id")[:1]

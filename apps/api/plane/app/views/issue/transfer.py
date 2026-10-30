@@ -53,6 +53,8 @@ class IssueTransferEndpoint(BaseAPIView):
     """
 
     def post(self, request, slug, project_id, issue_id):
+        if request.data.get("preserve_identity") is True:
+            return self.move_preserving_identity(request, slug, project_id, issue_id)
         target_project_id = request.data.get("target_project_id")
         if not target_project_id:
             return Response({"error": "target_project_id is required"}, status=status.HTTP_400_BAD_REQUEST)
@@ -253,3 +255,98 @@ class IssueTransferEndpoint(BaseAPIView):
             },
             status=status.HTTP_201_CREATED,
         )
+
+
+    def get(self, request, slug, project_id, issue_id):
+        return Response({"identity_preserving_move": True})
+
+    def move_preserving_identity(self, request, slug, project_id, issue_id):
+        """Idempotent in-place move for Nexus; legacy transfer remains unchanged."""
+        from django.db import connection, models
+        from plane.db.models import ProjectMember, WorkspaceMember, IssueSequence, IssueLabel, Label, CycleIssue, ModuleIssue
+        from plane.utils.uuid import convert_uuid_to_integer
+
+        target_id = request.data.get("target_project_id")
+        if not target_id or str(target_id) == str(project_id):
+            return Response({"error": "A different target project is required"}, status=400)
+        with transaction.atomic():
+            item = Issue.objects.select_for_update().filter(pk=issue_id, workspace__slug=slug).first()
+            target = Project.objects.filter(pk=target_id, workspace__slug=slug).first()
+            if not item or not target:
+                return Response({"error": "Work item or target not found"}, status=404)
+            if not WorkspaceMember.objects.filter(
+                workspace_id=item.workspace_id, member=request.user, is_active=True
+            ).exists():
+                return Response({"error": "Active workspace membership required"}, status=403)
+            source_membership = ProjectMember.objects.filter(
+                project_id=project_id, member=request.user, is_active=True
+            ).first()
+            if not source_membership or (
+                source_membership.role < 20 and item.created_by_id != request.user.id
+            ):
+                return Response({"error": "Source work item management permission required"}, status=403)
+            if not ProjectMember.objects.filter(
+                project=target, member=request.user, is_active=True, role__gte=15
+            ).exists():
+                return Response({"error": "Target creation permission required"}, status=403)
+            if item.archived_at or item.project.archived_at or target.archived_at:
+                return Response({"error": "Archived resources are read-only"}, status=409)
+            if str(item.project_id) == str(target_id):
+                return Response({"id": str(item.id), "project_id": str(target.id),
+                                 "sequence_id": item.sequence_id, "identity_preserved": True})
+            if str(item.project_id) != str(project_id):
+                return Response({"error": "Work item was moved elsewhere"}, status=409)
+            state = None
+            if item.state_id:
+                state = State.objects.filter(project=target, name=item.state.name, group=item.state.group).first()
+                if not state:
+                    return Response({"error": "Target requires a matching status name and group"}, status=409)
+            # Allocate a new project display number; the immutable Work Item ID is retained.
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT pg_advisory_xact_lock(%s)", [convert_uuid_to_integer(target.id)])
+            number = (IssueSequence.objects.filter(project=target).aggregate(
+                largest=models.Max("sequence"))["largest"] or 0) + 1
+            if CycleIssue.objects.filter(issue=item).exists() or ModuleIssue.objects.filter(issue=item).exists():
+                return Response({"error": "Remove project-scoped cycle/module membership before moving"}, status=409)
+            labels = list(IssueLabel.objects.filter(issue=item).select_related("label"))
+            target_labels = {label.name: label for label in Label.objects.filter(project=target)}
+            if any(link.label.name not in target_labels for link in labels):
+                return Response({"error": "Target requires matching labels"}, status=409)
+            if request.data.get("validate_only") is True:
+                return Response({"valid": True, "identity_preserving_move": True})
+            old_project = item.project_id
+            Issue.objects.filter(pk=item.pk).update(
+                project=target, state=state, sequence_id=number, updated_at=timezone.now()
+            )
+            IssueSequence.objects.create(project=target, workspace=target.workspace, issue=item, sequence=number)
+            # Child rows keep their IDs, actors, timestamps, and underlying assets.
+            # Historical sequence allocations must remain attached to their original project.
+            for relation in Issue._meta.related_objects:
+                model = relation.related_model
+                field = relation.field
+                if model in (Issue, IssueSequence) or not hasattr(model, "project_id"):
+                    continue
+                if field.name != "issue":
+                    continue
+                model.objects.filter(**{field.name: item}).update(project=target)
+            for link in labels:
+                IssueLabel.objects.filter(pk=link.pk).update(label=target_labels[link.label.name])
+            active = WorkspaceMember.objects.filter(workspace=target.workspace, is_active=True).values_list("member_id", flat=True)
+            eligible = set(str(uid) for uid in ProjectMember.objects.filter(
+                project=target, is_active=True, member_id__in=active).values_list("member_id", flat=True))
+            if "eligible_assignee_ids" in request.data:
+                eligible &= set(request.data["eligible_assignee_ids"])
+            removed = list(IssueAssignee.objects.filter(issue=item).exclude(assignee_id__in=eligible).values_list("assignee_id",flat=True))
+            IssueAssignee.objects.filter(issue=item).exclude(assignee_id__in=eligible).delete()
+            if removed:
+                IssueActivity.objects.create(project=target,workspace=target.workspace,issue=item,actor=request.user,
+                    verb="updated",field="assignees",old_value=",".join(str(uid) for uid in removed),
+                    new_value="",comment="Removed ineligible assignees on move",epoch=timezone.now().timestamp())
+            IssueActivity.objects.create(
+                project=target, workspace=target.workspace, issue=item, actor=request.user,
+                verb="updated", field="project", old_value=str(old_project), new_value=str(target.id),
+                old_identifier=old_project, new_identifier=target.id, epoch=timezone.now().timestamp(),
+                comment="Moved without changing work item identity",
+            )
+            return Response({"id": str(item.id), "project_id": str(target.id),
+                             "sequence_id": number, "identity_preserved": True})

@@ -247,7 +247,7 @@ class WorkspaceIssueAPIEndpoint(BaseAPIView):
                 sequence_id=issue_identifier,
             )
             return Response(
-                IssueSerializer(issue, fields=self.fields, expand=self.expand).data,
+                IssueSerializer(issue, fields=self.fields, expand=self.expand, context={"request":request}).data,
                 status=status.HTTP_200_OK,
             )
 
@@ -324,7 +324,7 @@ class IssueListCreateAPIEndpoint(BaseAPIView):
                 project_id=project_id,
             )
             return Response(
-                IssueSerializer(issue, fields=self.fields, expand=self.expand).data,
+                IssueSerializer(issue, fields=self.fields, expand=self.expand, context={"request":request}).data,
                 status=status.HTTP_200_OK,
             )
 
@@ -402,7 +402,7 @@ class IssueListCreateAPIEndpoint(BaseAPIView):
             request=request,
             queryset=(issue_queryset),
             total_count_queryset=total_issue_queryset,
-            on_results=lambda issues: IssueSerializer(issues, many=True, fields=self.fields, expand=self.expand).data,
+            on_results=lambda issues: IssueSerializer(issues, many=True, fields=self.fields, expand=self.expand, context={"request":request}).data,
         )
 
     @work_item_docs(
@@ -562,7 +562,7 @@ class IssueDetailAPIEndpoint(BaseAPIView):
             .values("count")
         ).get(workspace__slug=slug, project_id=project_id, pk=pk)
         return Response(
-            IssueSerializer(issue, fields=self.fields, expand=self.expand).data,
+            IssueSerializer(issue, fields=self.fields, expand=self.expand, context={"request":request}).data,
             status=status.HTTP_200_OK,
         )
 
@@ -859,7 +859,7 @@ class LabelListCreateAPIEndpoint(BaseAPIView):
             .filter(project_id=self.kwargs.get("project_id"))
             .filter(
                 project__project_projectmember__member=self.request.user,
-                project__project_projectmember__is_active=True,
+                project__project_projectmember__deleted_at__isnull=True, project__project_projectmember__is_active=True,
             )
             .filter(project__archived_at__isnull=True)
             .select_related("project")
@@ -1095,7 +1095,7 @@ class IssueLinkListCreateAPIEndpoint(BaseAPIView):
             .filter(issue_id=self.kwargs.get("issue_id"))
             .filter(
                 project__project_projectmember__member=self.request.user,
-                project__project_projectmember__is_active=True,
+                project__project_projectmember__deleted_at__isnull=True, project__project_projectmember__is_active=True,
             )
             .filter(project__archived_at__isnull=True)
             .order_by(self.kwargs.get("order_by", "-created_at"))
@@ -1200,7 +1200,7 @@ class IssueLinkDetailAPIEndpoint(BaseAPIView):
             .filter(issue_id=self.kwargs.get("issue_id"))
             .filter(
                 project__project_projectmember__member=self.request.user,
-                project__project_projectmember__is_active=True,
+                project__project_projectmember__deleted_at__isnull=True, project__project_projectmember__is_active=True,
             )
             .filter(project__archived_at__isnull=True)
             .order_by(self.kwargs.get("order_by", "-created_at"))
@@ -1343,7 +1343,7 @@ class IssueCommentListCreateAPIEndpoint(BaseAPIView):
             .filter(issue_id=self.kwargs.get("issue_id"))
             .filter(
                 project__project_projectmember__member=self.request.user,
-                project__project_projectmember__is_active=True,
+                project__project_projectmember__deleted_at__isnull=True, project__project_projectmember__is_active=True,
             )
             .filter(project__archived_at__isnull=True)
             .select_related("workspace", "project", "issue", "actor")
@@ -1499,7 +1499,7 @@ class IssueCommentDetailAPIEndpoint(BaseAPIView):
             .filter(issue_id=self.kwargs.get("issue_id"))
             .filter(
                 project__project_projectmember__member=self.request.user,
-                project__project_projectmember__is_active=True,
+                project__project_projectmember__deleted_at__isnull=True, project__project_projectmember__is_active=True,
             )
             .filter(project__archived_at__isnull=True)
             .select_related("workspace", "project", "issue", "actor")
@@ -1692,7 +1692,7 @@ class IssueActivityListAPIEndpoint(BaseAPIView):
             .filter(
                 ~Q(field__in=["comment", "vote", "reaction", "draft"]),
                 project__project_projectmember__member=self.request.user,
-                project__project_projectmember__is_active=True,
+                project__project_projectmember__deleted_at__isnull=True, project__project_projectmember__is_active=True,
             )
             .filter(project__archived_at__isnull=True)
             .select_related("actor", "workspace", "issue", "project")
@@ -1748,7 +1748,7 @@ class IssueActivityDetailAPIEndpoint(BaseAPIView):
                 .filter(
                     ~Q(field__in=["comment", "vote", "reaction", "draft"]),
                     project__project_projectmember__member=self.request.user,
-                    project__project_projectmember__is_active=True,
+                    project__project_projectmember__deleted_at__isnull=True, project__project_projectmember__is_active=True,
                 )
                 .filter(project__archived_at__isnull=True)
                 .select_related("actor", "workspace", "issue", "project")
@@ -2243,7 +2243,7 @@ class IssueSearchEndpoint(BaseAPIView):
         issues = Issue.issue_objects.filter(
             q,
             project__project_projectmember__member=self.request.user,
-            project__project_projectmember__is_active=True,
+            project__project_projectmember__deleted_at__isnull=True, project__project_projectmember__is_active=True,
             project__archived_at__isnull=True,
             workspace__slug=slug,
         )
@@ -2329,6 +2329,15 @@ class IssueRelationListCreateAPIEndpoint(BaseAPIView):
         issue_relation_qs = IssueRelation.objects.filter(
             Q(issue_id=issue_id) | Q(related_issue_id=issue_id),
             workspace__slug=slug,
+        )
+
+        visible_ids = Issue.issue_objects.filter(
+            workspace__slug=slug,
+            project__project_projectmember__member=request.user,
+            project__project_projectmember__deleted_at__isnull=True, project__project_projectmember__is_active=True,
+        ).values("id")
+        issue_relation_qs = issue_relation_qs.filter(
+            issue_id__in=visible_ids, related_issue_id__in=visible_ids
         )
 
         relation_ids = issue_relation_qs.aggregate(
@@ -2502,7 +2511,7 @@ class IssueAdvancedSearchEndpoint(BaseAPIView):
         issues = Issue.issue_objects.filter(
             workspace__slug=slug,
             project__project_projectmember__member=request.user,
-            project__project_projectmember__is_active=True,
+            project__project_projectmember__deleted_at__isnull=True, project__project_projectmember__is_active=True,
             project__archived_at__isnull=True,
         )
 
