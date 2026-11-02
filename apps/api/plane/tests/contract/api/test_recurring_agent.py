@@ -13,6 +13,8 @@ from plane.db.models import Project, ProjectMember, User, Workspace, WorkspaceMe
 
 class AgentFixture:
     def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
         self.key = patch.dict(os.environ, {"PLANE_NEXUS_ONBOARDING_KEY": "test-internal-key"})
         self.key.start()
         self.addCleanup(self.key.stop)
