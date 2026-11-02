@@ -255,7 +255,12 @@ class ProjectMemberListCreateAPIEndpoint(BaseAPIView):
         # Fetch ProjectMember records with member info in one query
         project_members = (
             ProjectMember.objects
-            .filter(project_id=project_id, workspace__slug=slug, is_active=True)
+            .filter(
+                project_id=project_id, workspace__slug=slug, is_active=True,
+                member_id__in=WorkspaceMember.objects.filter(
+                    workspace__slug=slug, is_active=True
+                ).values("member_id"),
+            )
             .select_related("member")
             .annotate(
                 started_issues=Count(
