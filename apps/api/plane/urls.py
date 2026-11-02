@@ -18,9 +18,12 @@ from plane.app.views.nexus_onboarding import (
     NexusOnboardUsersBulkEndpoint,
 )
 
+from plane.app.views.nexus_recurring_agent import NexusRecurringAgentEndpoint
+
 handler404 = "plane.app.views.error_404.custom_404_view"
 
 urlpatterns = [
+    path("api/internal/nexus/recurring-agent/", NexusRecurringAgentEndpoint.as_view()),
     path("api/internal/nexus/onboard-user/", NexusOnboardUserEndpoint.as_view()),
     path("api/internal/nexus/onboard-users-bulk/", NexusOnboardUsersBulkEndpoint.as_view()),
     path("api/internal/nexus/workspaces/", NexusListWorkspacesEndpoint.as_view()),
@@ -51,6 +54,7 @@ if settings.DEBUG:
     try:
         import debug_toolbar
 
-        urlpatterns = [re_path(r"^__debug__/", include(debug_toolbar.urls))] + urlpatterns
+        urlpatterns = [
+    path("api/internal/nexus/recurring-agent/", NexusRecurringAgentEndpoint.as_view()),re_path(r"^__debug__/", include(debug_toolbar.urls))] + urlpatterns
     except ImportError:
         pass
