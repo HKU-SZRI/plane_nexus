@@ -171,7 +171,12 @@ class DynamicBaseSerializer(BaseSerializer):
                     }
                     # Check if field in expansion then expand the field
                     if expand in expansion:
-                        if isinstance(response.get(expand), list):
+                        if expand == "assignees" and instance._meta.label_lower == "db.issue":
+                            from plane.db.models import IssueAssignee, User
+
+                            active_assignees = IssueAssignee.objects.filter(issue_id=instance.pk).values("assignee_id")
+                            exp_serializer = expansion[expand](User.objects.filter(id__in=active_assignees), many=True)
+                        elif isinstance(response.get(expand), list):
                             exp_serializer = expansion[expand](getattr(instance, expand), many=True)
                         else:
                             exp_serializer = expansion[expand](getattr(instance, expand))

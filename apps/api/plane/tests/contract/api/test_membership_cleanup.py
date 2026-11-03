@@ -179,6 +179,28 @@ class MembershipCleanupTests(CleanupFixture, TestCase):
         self.assertEqual(IssueAssignee.objects.filter(issue=self.issue, assignee=self.person).count(), 1)
         self.assertEqual(NexusMembershipCleanup.objects.count(), 0)
 
+    def test_expanded_assignees_exclude_soft_deleted_links_after_cleanup(self):
+        owner = self.workspace.owner
+        WorkspaceMember.objects.create(workspace=self.workspace, member=owner, role=20)
+        ProjectMember.objects.create(workspace=self.workspace, project=self.project, member=owner, role=20)
+        client = APIClient()
+        client.force_authenticate(owner)
+        paths = [
+            f"/api/workspaces/{self.workspace.slug}/projects/{self.project.id}/issues/{self.issue.id}/",
+            f"/api/v1/workspaces/{self.workspace.slug}/projects/{self.project.id}/work-items/{self.issue.id}/",
+        ]
+        for path in paths:
+            before = client.get(path, {"expand": "assignees"})
+            self.assertEqual(before.status_code, 200, before.data)
+            self.assertEqual({str(user["id"]) for user in before.data["assignees"]},
+                             {str(owner.id), str(self.person.id)})
+        self.assertEqual(self.cleanup(deactivate=False, project_ids=[str(self.project.id)]).status_code, 200)
+        for path in paths:
+            after = client.get(path, {"expand": "assignees"})
+            self.assertEqual(after.status_code, 200, after.data)
+            self.assertEqual({str(user["id"]) for user in after.data["assignees"]}, {str(owner.id)})
+            self.assertEqual({str(value) for value in after.data["assignee_ids"]}, {str(owner.id)})
+
     def test_unauthorized_and_invalid_requests_leave_data_intact(self):
         self.client.credentials()
         self.assertEqual(self.cleanup().status_code, 403)
