@@ -263,7 +263,10 @@ class IssueTransferEndpoint(BaseAPIView):
     def move_preserving_identity(self, request, slug, project_id, issue_id):
         """Idempotent in-place move for Nexus; legacy transfer remains unchanged."""
         from django.db import connection, models
-        from plane.db.models import ProjectMember, WorkspaceMember, IssueSequence, IssueLabel, Label, CycleIssue, ModuleIssue
+        from plane.db.models import (
+            ProjectMember, WorkspaceMember, IssueSequence, IssueLabel, Label,
+            Cycle, CycleIssue, Module, ModuleIssue,
+        )
         from plane.utils.uuid import convert_uuid_to_integer
 
         target_id = request.data.get("target_project_id")
@@ -306,8 +309,30 @@ class IssueTransferEndpoint(BaseAPIView):
                 cursor.execute("SELECT pg_advisory_xact_lock(%s)", [convert_uuid_to_integer(target.id)])
             number = (IssueSequence.objects.filter(project=target).aggregate(
                 largest=models.Max("sequence"))["largest"] or 0) + 1
-            if CycleIssue.objects.filter(issue=item).exists() or ModuleIssue.objects.filter(issue=item).exists():
-                return Response({"error": "Remove project-scoped cycle/module membership before moving"}, status=409)
+            cycle_links = list(CycleIssue.objects.filter(
+                issue=item, deleted_at__isnull=True
+            ).select_related("cycle"))
+            module_links = list(ModuleIssue.objects.filter(
+                issue=item, deleted_at__isnull=True
+            ).select_related("module"))
+            cycle_targets = {}
+            for link in cycle_links:
+                target_cycle = Cycle.objects.filter(
+                    project=target, name=link.cycle.name, archived_at__isnull=True,
+                    deleted_at__isnull=True,
+                ).first()
+                if not target_cycle:
+                    return Response({"error": f'Target requires an active cycle named "{link.cycle.name}"'}, status=409)
+                cycle_targets[link.id] = target_cycle
+            module_targets = {}
+            for link in module_links:
+                target_module = Module.objects.filter(
+                    project=target, name=link.module.name, archived_at__isnull=True,
+                    deleted_at__isnull=True,
+                ).first()
+                if not target_module:
+                    return Response({"error": f'Target requires an active module named "{link.module.name}"'}, status=409)
+                module_targets[link.id] = target_module
             labels = list(IssueLabel.objects.filter(issue=item).select_related("label"))
             target_labels = {label.name: label for label in Label.objects.filter(project=target)}
             if any(link.label.name not in target_labels for link in labels):
@@ -331,6 +356,10 @@ class IssueTransferEndpoint(BaseAPIView):
                 model.objects.filter(**{field.name: item}).update(project=target)
             for link in labels:
                 IssueLabel.objects.filter(pk=link.pk).update(label=target_labels[link.label.name])
+            for link in cycle_links:
+                CycleIssue.objects.filter(pk=link.pk).update(cycle=cycle_targets[link.id], project=target)
+            for link in module_links:
+                ModuleIssue.objects.filter(pk=link.pk).update(module=module_targets[link.id], project=target)
             active = WorkspaceMember.objects.filter(workspace=target.workspace, is_active=True).values_list("member_id", flat=True)
             eligible = set(str(uid) for uid in ProjectMember.objects.filter(
                 project=target, is_active=True, member_id__in=active).values_list("member_id", flat=True))
