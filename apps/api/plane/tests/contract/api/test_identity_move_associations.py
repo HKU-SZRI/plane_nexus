@@ -1,12 +1,14 @@
 import uuid
 
 from django.test import TestCase
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 from plane.db.models import (
     Cycle,
     CycleIssue,
     Issue,
+    IssueRelation,
     Module,
     ModuleIssue,
     Project,
@@ -103,3 +105,24 @@ class IdentityMoveAssociationTests(TestCase):
         self.cycle_link.refresh_from_db()
         self.assertEqual(self.item.project_id, self.source.id)
         self.assertEqual(self.cycle_link.cycle_id, self.source_cycle.id)
+
+    def test_deleted_related_item_is_not_an_active_relation(self):
+        related = Issue.objects.create(
+            project=self.target, workspace=self.workspace, name="Related item", created_by=self.owner
+        )
+        relation = IssueRelation.objects.create(
+            project=self.source, workspace=self.workspace, issue=self.item,
+            related_issue=related, relation_type="relates_to",
+        )
+        path = (
+            f"/api/v1/workspaces/{self.workspace.slug}/projects/{self.source.id}"
+            f"/work-items/{self.item.id}/relations/"
+        )
+        before = self.client.get(path)
+        self.assertEqual(before.status_code, 200, before.data)
+        self.assertIn(str(related.id), str(before.data))
+        Issue.objects.filter(pk=related.pk).update(deleted_at=timezone.now())
+        after = self.client.get(path)
+        self.assertEqual(after.status_code, 200, after.data)
+        self.assertNotIn(str(related.id), str(after.data))
+        self.assertTrue(IssueRelation.objects.filter(pk=relation.pk).exists())
