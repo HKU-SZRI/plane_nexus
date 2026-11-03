@@ -331,7 +331,10 @@ class IssueTransferEndpoint(BaseAPIView):
                     deleted_at__isnull=True,
                 ).first()
                 if not target_module:
-                    return Response({"error": f'Target requires an active module named "{link.module.name}"'}, status=409)
+                    return Response(
+                        {"error": f'Target requires an active module named "{link.module.name}"'},
+                        status=409,
+                    )
                 module_targets[link.id] = target_module
             labels = list(IssueLabel.objects.filter(issue=item).select_related("label"))
             target_labels = {label.name: label for label in Label.objects.filter(project=target)}
@@ -360,12 +363,18 @@ class IssueTransferEndpoint(BaseAPIView):
                 CycleIssue.objects.filter(pk=link.pk).update(cycle=cycle_targets[link.id], project=target)
             for link in module_links:
                 ModuleIssue.objects.filter(pk=link.pk).update(module=module_targets[link.id], project=target)
-            active = WorkspaceMember.objects.filter(workspace=target.workspace, is_active=True).values_list("member_id", flat=True)
+            active = WorkspaceMember.objects.filter(
+                workspace=target.workspace, is_active=True
+            ).values_list("member_id", flat=True)
             eligible = set(str(uid) for uid in ProjectMember.objects.filter(
                 project=target, is_active=True, member_id__in=active).values_list("member_id", flat=True))
             if "eligible_assignee_ids" in request.data:
                 eligible &= set(request.data["eligible_assignee_ids"])
-            removed = list(IssueAssignee.objects.filter(issue=item).exclude(assignee_id__in=eligible).values_list("assignee_id",flat=True))
+            removed = list(
+                IssueAssignee.objects.filter(issue=item)
+                .exclude(assignee_id__in=eligible)
+                .values_list("assignee_id", flat=True)
+            )
             IssueAssignee.objects.filter(issue=item).exclude(assignee_id__in=eligible).delete()
             if removed:
                 IssueActivity.objects.create(project=target,workspace=target.workspace,issue=item,actor=request.user,
