@@ -158,6 +158,7 @@ from plane.utils.openapi import (
 )
 from plane.bgtasks.work_item_link_task import crawl_work_item_link_title
 from plane.utils.filters import ComplexFilterBackend, IssueFilterSet
+from plane.utils.issue_relation_visibility import visible_relation_issues, relation_items_visible
 
 
 def user_has_issue_permission(user_id, project_id, issue=None, allowed_roles=None, allow_creator=True):
@@ -2326,16 +2327,15 @@ class IssueRelationListCreateAPIEndpoint(BaseAPIView):
                 empty_uuid_array,
             )
 
+        visible = visible_relation_issues(request.user, slug)
+        if not visible.filter(id=issue_id, project_id=project_id).exists():
+            return Response({"error": "Work item not found"}, status=status.HTTP_404_NOT_FOUND)
         issue_relation_qs = IssueRelation.objects.filter(
             Q(issue_id=issue_id) | Q(related_issue_id=issue_id),
             workspace__slug=slug,
         )
 
-        visible_ids = Issue.issue_objects.filter(
-            workspace__slug=slug,
-            project__project_projectmember__member=request.user,
-            project__project_projectmember__deleted_at__isnull=True, project__project_projectmember__is_active=True,
-        ).values("id")
+        visible_ids = visible.values("id")
         issue_relation_qs = issue_relation_qs.filter(
             issue_id__in=visible_ids, related_issue_id__in=visible_ids
         )
@@ -2430,6 +2430,8 @@ class IssueRelationListCreateAPIEndpoint(BaseAPIView):
 
         relation_type = serializer.validated_data["relation_type"]
         issues = serializer.validated_data["issues"]
+        if not relation_items_visible(request.user, slug, project_id, issue_id, issues):
+            return Response({"error": "Work item not found"}, status=status.HTTP_404_NOT_FOUND)
         project = Project.objects.get(pk=project_id, workspace__slug=slug)
 
         actual_relation = get_actual_relation(relation_type)

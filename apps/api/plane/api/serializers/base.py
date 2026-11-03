@@ -73,13 +73,14 @@ class BaseSerializer(serializers.ModelSerializer):
         response = super().to_representation(instance)
 
         parent_hidden = False
-        if getattr(instance, "parent_id", None) and instance.parent.project_id != instance.project_id:
+        if getattr(instance, "parent_id", None) and instance._meta.label_lower == "db.issue":
             from crum import get_current_user
-            from plane.db.models import ProjectMember
+            from plane.utils.issue_relation_visibility import visible_relation_issues
+
             request = self.context.get("request")
             user = request.user if request else get_current_user()
-            parent_hidden = not user or not getattr(user, "is_authenticated", False) or not ProjectMember.objects.filter(
-                project_id=instance.parent.project_id, member=user, is_active=True
+            parent_hidden = not visible_relation_issues(user, instance.workspace.slug).filter(
+                id=instance.parent_id
             ).exists()
             if parent_hidden:
                 for key in ("parent", "parent_id"):
