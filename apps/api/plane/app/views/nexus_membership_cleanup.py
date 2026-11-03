@@ -31,6 +31,9 @@ class CleanupRequest(serializers.Serializer):
     actor_id = serializers.UUIDField(allow_null=True, default=None)
     reason = serializers.CharField(max_length=1000, allow_blank=False)
     deactivate = serializers.BooleanField(default=False)
+    project_ids = serializers.ListField(
+        child=serializers.UUIDField(), required=False, allow_empty=False, max_length=1000
+    )
 
 
 class MembershipStateRequest(serializers.Serializer):
@@ -112,38 +115,45 @@ class NexusMembershipCleanupEndpoint(APIView):
                 "actor_id": str(values["actor_id"]) if values["actor_id"] else None,
                 "reason": values["reason"],
             }
+            project_ids = values.get("project_ids")
+            if project_ids:
+                project_ids = sorted({str(value) for value in project_ids})
+                command["project_ids"] = project_ids
             if existing and existing.request != command:
                 return Response({"error": "Operation ID already used for another command"}, status=409)
-            if existing and member.is_active:
+            if existing and member.is_active and not project_ids:
                 return Response({"error": "Member was reactivated; old cleanup cannot run"}, status=409)
             if existing:
                 return Response(existing.result)
-            if member.is_active and not values["deactivate"]:
+            if project_ids and values["deactivate"]:
+                return Response({"error": "Scoped cleanup cannot deactivate a member"}, status=400)
+            if not project_ids and member.is_active and not values["deactivate"]:
                 return Response({"error": "Member must be inactive before cleanup"}, status=409)
             if values["actor_id"] and not User.objects.filter(id=values["actor_id"]).exists():
                 return Response({"error": "Audit actor not found"}, status=400)
             # Emergency shutdown is atomic with remote membership/assignment
             # invalidation. Ordinary shutdown uses the existing admin endpoint.
-            if member.is_active:
+            if not project_ids and member.is_active:
                 member.is_active = False
                 member.save(update_fields=["is_active", "updated_at"])
-            project_ids = list(
-                ProjectMember.objects.filter(
-                    workspace=workspace,
-                    member_id=values["plane_id"],
-                ).values_list("project_id", flat=True)
-            )
-            ProjectMember.objects.filter(workspace=workspace, member_id=values["plane_id"]).update(
-                is_active=False,
-                updated_at=timezone.now(),
-            )
-            assignments = list(
-                IssueAssignee.objects.filter(
-                    workspace=workspace,
-                    assignee_id=values["plane_id"],
-                    issue__deleted_at__isnull=True,
-                ).values("id", "issue_id", "project_id")
-            )
+            if project_ids:
+                from plane.db.models import Project
+                if Project.objects.filter(workspace=workspace, id__in=project_ids).count() != len(project_ids):
+                    return Response({"error": "Cleanup project does not belong to workspace"}, status=404)
+                impacted_project_ids = project_ids
+            else:
+                impacted_project_ids = list(ProjectMember.objects.filter(
+                    workspace=workspace, member_id=values["plane_id"]
+                ).values_list("project_id", flat=True))
+                ProjectMember.objects.filter(workspace=workspace, member_id=values["plane_id"]).update(
+                    is_active=False, updated_at=timezone.now(),
+                )
+            assignments = list(IssueAssignee.objects.filter(
+                workspace=workspace,
+                assignee_id=values["plane_id"],
+                project_id__in=impacted_project_ids,
+                issue__deleted_at__isnull=True,
+            ).values("id", "issue_id", "project_id"))
             # Serialize against normal issue updates; soft-delete only this
             # user's links so every other assignee, ID and creator is preserved.
             list(
@@ -180,7 +190,7 @@ class NexusMembershipCleanupEndpoint(APIView):
                 "operation_id": str(values["operation_id"]),
                 **command,
                 "project_ids": sorted(
-                    {str(pid) for pid in project_ids} | {str(row["project_id"]) for row in assignments}
+                    {str(pid) for pid in impacted_project_ids} | {str(row["project_id"]) for row in assignments}
                 ),
                 "unassigned_work_item_ids": sorted({str(row["issue_id"]) for row in assignments}),
             }
