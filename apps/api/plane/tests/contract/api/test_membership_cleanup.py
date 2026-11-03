@@ -141,6 +141,44 @@ class MembershipCleanupTests(CleanupFixture, TestCase):
         self.assertEqual(self.cleanup(reason="Different command").status_code, 409)
         self.assertEqual(NexusMembershipCleanup.objects.count(), 1)
 
+    def test_scoped_cleanup_only_unassigns_in_selected_project_without_deactivation(self):
+        other_project = Project.objects.create(
+            name="Other container", identifier="OTH", workspace=self.workspace
+        )
+        ProjectMember.objects.create(
+            workspace=self.workspace, project=other_project, member=self.person, role=15
+        )
+        other_issue = Issue.objects.create(
+            name="Other work item", project=other_project, workspace=self.workspace,
+            created_by=self.workspace.owner,
+        )
+        IssueAssignee.objects.create(
+            workspace=self.workspace, project=other_project, issue=other_issue, assignee=self.person
+        )
+
+        response = self.cleanup(deactivate=False, project_ids=[str(self.project.id)])
+
+        self.assertEqual(response.status_code, 200, response.data)
+        self.membership.refresh_from_db()
+        self.assertTrue(self.membership.is_active)
+        self.assertTrue(ProjectMember.objects.get(member=self.person, project=self.project).is_active)
+        self.assertEqual(IssueAssignee.objects.filter(issue=self.issue, assignee=self.person).count(), 0)
+        self.assertEqual(IssueAssignee.all_objects.filter(issue=self.issue, assignee=self.person).count(), 1)
+        self.assertEqual(IssueAssignee.objects.filter(issue=other_issue, assignee=self.person).count(), 1)
+        self.assertEqual(IssueActivity.objects.filter(issue=self.issue).count(), 1)
+        self.assertEqual(IssueActivity.objects.filter(issue=other_issue).count(), 0)
+        self.assertEqual(response.data["project_ids"], [str(self.project.id)])
+        self.assertEqual(response.data["unassigned_work_item_ids"], [str(self.issue.id)])
+
+    def test_scoped_cleanup_rejects_projects_from_another_workspace(self):
+        other = Workspace.objects.create(name="Other", slug="other", owner=self.workspace.owner)
+        project = Project.objects.create(name="Other", identifier="OTH", workspace=other)
+        response = self.cleanup(deactivate=False, project_ids=[str(project.id)])
+        self.assertEqual(response.status_code, 404)
+        self.assertTrue(self.membership.is_active)
+        self.assertEqual(IssueAssignee.objects.filter(issue=self.issue, assignee=self.person).count(), 1)
+        self.assertEqual(NexusMembershipCleanup.objects.count(), 0)
+
     def test_unauthorized_and_invalid_requests_leave_data_intact(self):
         self.client.credentials()
         self.assertEqual(self.cleanup().status_code, 403)
