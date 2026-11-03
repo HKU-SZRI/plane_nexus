@@ -51,6 +51,7 @@ from .notification import EmailNotificationLog, Notification, UserNotificationPr
 from .page import Page, PageLabel, PageLog, ProjectPage, PageVersion
 from .project import (
     Project,
+    ProjectArchiveEvent,
     ProjectBaseModel,
     ProjectIdentifier,
     ProjectMember,

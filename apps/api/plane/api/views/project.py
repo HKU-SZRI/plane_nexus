@@ -7,6 +7,7 @@ import json
 
 # Django imports
 from django.db import IntegrityError, transaction
+from django.utils.dateparse import parse_datetime
 from django.db.models import Exists, F, Func, OuterRef, Prefetch, Q, Subquery, Count
 from django.db.models.functions import Coalesce
 from django.utils import timezone
@@ -25,6 +26,7 @@ from plane.db.models import (
     Intake,
     Module,
     Project,
+    ProjectArchiveEvent,
     DeployBoard,
     ProjectMember,
     State,
@@ -47,7 +49,7 @@ from plane.api.serializers import (
     ProjectCreateSerializer,
     ProjectUpdateSerializer,
 )
-from plane.app.permissions import ProjectBasePermission, WorkSpaceAdminPermission, ROLE
+from plane.app.permissions import ProjectBasePermission, ProjectMemberPermission, WorkSpaceAdminPermission, ROLE
 from plane.utils.openapi import (
     project_docs,
     PROJECT_ID_PARAMETER,
@@ -592,9 +594,16 @@ class ProjectArchiveUnarchiveAPIEndpoint(BaseAPIView):
         Move a project to archived status, hiding it from active project lists.
         Archived projects remain accessible but are excluded from regular workflows.
         """
-        project = Project.objects.get(pk=project_id, workspace__slug=slug)
-        project.archived_at = timezone.now()
-        project.save()
+        with transaction.atomic():
+            project = Project.objects.select_for_update().get(pk=project_id, workspace__slug=slug)
+            if not project.archived_at:
+                archived_at = timezone.now()
+                project.archived_at = archived_at
+                project.save()
+                ProjectArchiveEvent.objects.create(
+                    project=project, workspace=project.workspace, archived=True,
+                    actor_id=request.user.id, occurred_at=archived_at,
+                )
         UserFavorite.objects.filter(workspace__slug=slug, project=project_id).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -616,10 +625,36 @@ class ProjectArchiveUnarchiveAPIEndpoint(BaseAPIView):
         Restore an archived project to active status, making it available in regular workflows.
         The project will reappear in active project lists and become fully functional.
         """
-        project = Project.objects.get(pk=project_id, workspace__slug=slug)
-        project.archived_at = None
-        project.save()
+        with transaction.atomic():
+            project = Project.objects.select_for_update().get(pk=project_id, workspace__slug=slug)
+            if project.archived_at:
+                unarchived_at = timezone.now()
+                project.archived_at = None
+                project.save()
+                ProjectArchiveEvent.objects.create(
+                    project=project, workspace=project.workspace, archived=False,
+                    actor_id=request.user.id, occurred_at=unarchived_at,
+                )
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ProjectArchiveEventsV1Endpoint(BaseAPIView):
+    permission_classes = [ProjectMemberPermission]
+
+    def get(self, request, slug, project_id):
+        project = Project.objects.get(pk=project_id, workspace__slug=slug)
+        after = request.query_params.get("after")
+        if after:
+            after = parse_datetime(after)
+            if after is None:
+                return Response({"error": "Invalid after timestamp"}, status=status.HTTP_400_BAD_REQUEST)
+        events = ProjectArchiveEvent.objects.filter(project=project)
+        if after:
+            events = events.filter(occurred_at__gt=after)
+        return Response({"events": [
+            {"id": str(event.id), "archived": event.archived, "occurred_at": event.occurred_at}
+            for event in events.order_by("occurred_at", "id")
+        ]})
 
 
 ALLOWED_PROJECT_SUMMARY_FIELDS = [

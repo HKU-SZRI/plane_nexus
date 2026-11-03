@@ -8,6 +8,7 @@ import json
 
 # Django imports
 from django.core.serializers.json import DjangoJSONEncoder
+from django.db import transaction
 from django.db.models import Exists, F, OuterRef, Prefetch, Q, Subquery, Count
 from django.utils import timezone
 
@@ -30,6 +31,7 @@ from plane.db.models import (
     DeployBoard,
     Intake,
     Project,
+    ProjectArchiveEvent,
     ProjectIdentifier,
     ProjectMember,
     ProjectNetwork,
@@ -422,17 +424,31 @@ class ProjectViewSet(BaseViewSet):
 class ProjectArchiveUnarchiveEndpoint(BaseAPIView):
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
     def post(self, request, slug, project_id):
-        project = Project.objects.get(pk=project_id, workspace__slug=slug)
-        project.archived_at = timezone.now()
-        project.save()
+        with transaction.atomic():
+            project = Project.objects.select_for_update().get(pk=project_id, workspace__slug=slug)
+            if not project.archived_at:
+                archived_at = timezone.now()
+                project.archived_at = archived_at
+                project.save()
+                ProjectArchiveEvent.objects.create(
+                    project=project, workspace=project.workspace, archived=True,
+                    actor_id=request.user.id, occurred_at=archived_at,
+                )
         UserFavorite.objects.filter(workspace__slug=slug, project=project_id).delete()
         return Response({"archived_at": str(project.archived_at)}, status=status.HTTP_200_OK)
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
     def delete(self, request, slug, project_id):
-        project = Project.objects.get(pk=project_id, workspace__slug=slug)
-        project.archived_at = None
-        project.save()
+        with transaction.atomic():
+            project = Project.objects.select_for_update().get(pk=project_id, workspace__slug=slug)
+            if project.archived_at:
+                unarchived_at = timezone.now()
+                project.archived_at = None
+                project.save()
+                ProjectArchiveEvent.objects.create(
+                    project=project, workspace=project.workspace, archived=False,
+                    actor_id=request.user.id, occurred_at=unarchived_at,
+                )
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
