@@ -65,6 +65,7 @@ def test_move_rejects_missing_target_status_without_writes(api_key_client,worksp
 
 def test_move_preserves_cycle_and_module_links_by_matching_target_name(api_key_client, workspace, create_user, contexts):
     source,target,item=contexts
+    State.objects.create(project=target,name="Meeting pending",group="unstarted")
     Cycle.objects.create(project=source,workspace=workspace,name="Sprint 4",owned_by=create_user)
     target_cycle=Cycle.objects.create(project=target,workspace=workspace,name="Sprint 4",owned_by=create_user)
     Module.objects.create(project=source,workspace=workspace,name="Q4 planning")
@@ -92,6 +93,7 @@ def test_move_preserves_cycle_and_module_links_by_matching_target_name(api_key_c
 
 def test_move_with_cycle_without_matching_target_is_rejected(api_key_client, workspace, create_user, contexts):
     source,target,item=contexts
+    State.objects.create(project=target,name="Meeting pending",group="unstarted")
     cycle=Cycle.objects.create(project=source,workspace=workspace,name="No target sprint",owned_by=create_user)
     CycleIssue.objects.create(project=source,workspace=workspace,issue=item,cycle=cycle)
     response=api_key_client.post(path(workspace,source,item),
