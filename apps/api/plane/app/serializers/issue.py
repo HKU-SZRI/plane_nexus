@@ -913,7 +913,8 @@ class IssueListDetailSerializer(serializers.Serializer):
                     )
                 data["issue_related"] = related
 
-        return data
+        from plane.utils.issue_link_visibility import protect_issue_links
+        return protect_issue_links(instance, data, self.context)
 
 
 class IssueLiteSerializer(DynamicBaseSerializer):

@@ -234,7 +234,7 @@ new_url_patterns = [
     ),
     path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/work-items/<uuid:issue_id>/transfer/",
-        IssueTransferV1Endpoint.as_view(http_method_names=["post"]),
+        IssueTransferV1Endpoint.as_view(http_method_names=["get", "post"]),
         name="work-item-transfer",
     ),
 ]

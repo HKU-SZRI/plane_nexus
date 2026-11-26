@@ -72,9 +72,26 @@ class BaseSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         response = super().to_representation(instance)
 
+        parent_hidden = False
+        if getattr(instance, "parent_id", None) and instance._meta.label_lower == "db.issue":
+            from crum import get_current_user
+            from plane.utils.issue_relation_visibility import visible_relation_issues
+
+            request = self.context.get("request")
+            user = request.user if request else get_current_user()
+            parent_hidden = not visible_relation_issues(user, instance.workspace.slug).filter(
+                id=instance.parent_id
+            ).exists()
+            if parent_hidden:
+                for key in ("parent", "parent_id"):
+                    if key in response:
+                        response[key] = None
+
         # Ensure 'expand' is iterable before processing
         if self.expand:
             for expand in self.expand:
+                if expand == "parent" and parent_hidden:
+                    continue
                 if expand in self.fields:
                     # Import all the expandable serializers
                     from . import (

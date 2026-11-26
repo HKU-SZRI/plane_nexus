@@ -190,6 +190,20 @@ class ProjectBaseModel(BaseModel):
         super(ProjectBaseModel, self).save(*args, **kwargs)
 
 
+class ProjectArchiveEvent(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="archive_events")
+    workspace = models.ForeignKey("db.WorkSpace", on_delete=models.CASCADE)
+    archived = models.BooleanField()
+    actor_id = models.UUIDField(null=True)
+    occurred_at = models.DateTimeField(db_index=True)
+
+    class Meta:
+        db_table = "project_archive_events"
+        ordering = ("occurred_at", "id")
+        indexes = [models.Index(fields=["project", "occurred_at"], name="project_archive_event_time_idx")]
+
+
 class ProjectMemberInvite(ProjectBaseModel):
     email = models.CharField(max_length=255)
     accepted = models.BooleanField(default=False)

@@ -31,6 +31,7 @@ from plane.db.models import (
 )
 from plane.bgtasks.issue_activities_task import issue_activity
 from plane.utils.issue_relation_mapper import get_actual_relation
+from plane.utils.issue_relation_visibility import visible_relation_issues, relation_items_visible
 from plane.utils.host import base_host
 
 
@@ -40,6 +41,9 @@ class IssueRelationViewSet(BaseViewSet):
     permission_classes = [ProjectEntityPermission]
 
     def list(self, request, slug, project_id, issue_id):
+        visible = visible_relation_issues(request.user, slug)
+        if not visible.filter(id=issue_id, project_id=project_id).exists():
+            return Response({"error": "Work item not found"}, status=status.HTTP_404_NOT_FOUND)
         issue_relations = (
             IssueRelation.objects.filter(Q(issue_id=issue_id) | Q(related_issue=issue_id))
             .filter(workspace__slug=self.kwargs.get("slug"))
@@ -100,7 +104,7 @@ class IssueRelationViewSet(BaseViewSet):
         )
 
         queryset = (
-            Issue.issue_objects.filter(workspace__slug=slug)
+            visible
             .select_related("workspace", "project", "state", "parent")
             .prefetch_related("assignees", "labels", "issue_module__module")
             .annotate(
@@ -215,7 +219,9 @@ class IssueRelationViewSet(BaseViewSet):
             )
 
         issues = request.data.get("issues", [])
-        project = Project.objects.get(pk=project_id)
+        if not relation_items_visible(request.user, slug, project_id, issue_id, issues):
+            return Response({"error": "Work item not found"}, status=status.HTTP_404_NOT_FOUND)
+        project = Project.objects.get(pk=project_id, workspace__slug=slug)
 
         issue_relation = IssueRelation.objects.bulk_create(
             [
@@ -262,12 +268,17 @@ class IssueRelationViewSet(BaseViewSet):
     def remove_relation(self, request, slug, project_id, issue_id):
         related_issue = request.data.get("related_issue", None)
 
+        if not relation_items_visible(request.user, slug, project_id, issue_id, [related_issue]):
+            return Response({"error": "Work item not found"}, status=status.HTTP_404_NOT_FOUND)
+
         issue_relations = IssueRelation.objects.filter(
             workspace__slug=slug,
         ).filter(
             Q(issue_id=related_issue, related_issue_id=issue_id) | Q(issue_id=issue_id, related_issue_id=related_issue)
         )
         issue_relations = issue_relations.first()
+        if issue_relations is None:
+            return Response({"error": "Relation not found"}, status=status.HTTP_404_NOT_FOUND)
         current_instance = json.dumps(IssueRelationSerializer(issue_relations).data, cls=DjangoJSONEncoder)
         issue_relations.delete()
         issue_activity.delay(

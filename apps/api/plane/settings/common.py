@@ -120,6 +120,7 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "plane.middleware.archived_project_read_only.ArchivedProjectReadOnlyMiddleware",
     "crum.CurrentRequestUserMiddleware",
     "django.middleware.gzip.GZipMiddleware",
     "plane.middleware.request_body_size.RequestBodySizeLimitMiddleware",

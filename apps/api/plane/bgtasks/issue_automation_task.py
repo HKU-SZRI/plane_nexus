@@ -29,7 +29,7 @@ def archive_and_close_old_issues():
 def archive_old_issues():
     try:
         # Get all the projects whose archive_in is greater than 0
-        projects = Project.objects.filter(archive_in__gt=0)
+        projects = Project.objects.filter(archive_in__gt=0, archived_at__isnull=True)
 
         for project in projects:
             project_id = project.id
@@ -89,7 +89,7 @@ def archive_old_issues():
 
 def archive_cancelled_issues():
     try:
-        projects = Project.objects.filter(auto_archive_cancelled_issues=True)
+        projects = Project.objects.filter(auto_archive_cancelled_issues=True, archived_at__isnull=True)
 
         for project in projects:
             project_id = project.id
@@ -131,7 +131,7 @@ def archive_cancelled_issues():
 def close_old_issues():
     try:
         # Get all the projects whose close_in is greater than 0
-        projects = Project.objects.filter(close_in__gt=0).select_related("default_state")
+        projects = Project.objects.filter(close_in__gt=0, archived_at__isnull=True).select_related("default_state")
 
         for project in projects:
             project_id = project.id

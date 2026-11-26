@@ -8,6 +8,7 @@ from django.utils.crypto import get_random_string
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+from rest_framework.throttling import AnonRateThrottle
 from rest_framework.views import APIView
 
 from plane.db.models import Profile, Project, ProjectMember, ProjectUserProperty, User, Workspace, WorkspaceMember
@@ -19,12 +20,18 @@ def _check_internal_key(request) -> bool:
     return bool(expected_key) and provided_key == expected_key
 
 
+class NexusWorkspaceThrottle(AnonRateThrottle):
+    def allow_request(self, request, view):
+        return _check_internal_key(request) or super().allow_request(request, view)
+
+
 class NexusListWorkspacesEndpoint(APIView):
     """Internal, service-key-authenticated endpoint so Nexus can list real
     Plane workspaces instead of relying on a hardcoded/guessed slug list."""
 
     permission_classes = [AllowAny]
     authentication_classes = []
+    throttle_classes = [NexusWorkspaceThrottle]
 
     def get(self, request):
         if not _check_internal_key(request):
